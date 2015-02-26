@@ -31,6 +31,9 @@ class Date(object):
             return 1
         return 0
 
+"""
+This is my comment
+"""
 
 class Text(object):
     def __init__(self, s):
