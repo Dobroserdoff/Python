@@ -32,7 +32,7 @@ class Date(object):
         return 0
 
 """
-This is my meaningless comment I made!
+This is my meaningless comment Socrates made!
 """
 
 class Text(object):
