@@ -32,7 +32,7 @@ class Date(object):
         return 0
 
 """
-This is my comment
+This is sparta!
 """
 
 class Text(object):
