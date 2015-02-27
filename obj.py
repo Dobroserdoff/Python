@@ -31,9 +31,6 @@ class Date(object):
             return 1
         return 0
 
-"""
-This is my meaningless comment Socrates made!
-"""
 
 class Text(object):
     def __init__(self, s):
@@ -50,10 +47,54 @@ class Text(object):
         return 0
 
 
+class Address(object):
+    def __init__(self, country, city=None, street=None, building=None, apartment=None):
+        self.country = country
+        self.city = city
+        self.street = street
+        self.building = building
+        self.apartment = apartment
+
+    def to_string(self):
+        addr = []
+        if self.country:
+            addr.append(self.country)
+            if self.city:
+                addr.append(self.city)
+                if self.street:
+                    addr.append(self.street)
+                    if self.building:
+                        addr.append(self.building)
+                        if self.apartment:
+                            addr.append(self.apartment)
+        return ', '.join(addr)
+
+    def match(self, country, city=None, street=None, building=None, apartment=None):
+        addr = []
+        if country and country == self.country:
+            addr.append(country)
+            if city and city == self.city:
+                addr.append(city)
+                if street and street == self.street:
+                    addr.append(street)
+                    if building and building == self.building:
+                        addr.append(building)
+                        if apartment and apartment == self.apartment:
+                            addr.append(apartment)
+        while len(addr) < 5:
+            addr.append(None)
+        self.country = addr[0]
+        self.city = addr[1]
+        self.street = addr[2]
+        self.building = addr[3]
+        self.apartment = addr[4]
+        return self
+
+
 class Human(object):
     def __init__(self):
-        self.props = [None, None, None, None, None, None, [], None]
-        # first, middle, last, birthday, phone, spouse, kids, number
+        self.props = [None, None, None, None, None, None, [], None, None, None]
+        # first, middle, last, birthday, phone, spouse, kids, home address, work address, number
 
     def create_from_name_and_birthday(self, first_name, last_name, birthday):
         """
@@ -80,6 +121,9 @@ class Human(object):
             elif i == 6:
                 for j in range(len(line[i].split('&'))):
                     self.props[i].append(Text(line[i].split('&')[j]))
+            elif i == 7 or i == 8:
+                self.props[i] = Address(line[i].split(', ')[0], line[i].split(', ')[1], line[i].split(', ')[2],
+                                        line[i].split(', ')[3], line[i].split(', ')[4])
             else:
                 self.props[i] = Text(line[i])
 
@@ -148,8 +192,12 @@ class Human(object):
                 for i in range(len(self.props[6])):
                     result.append(self.props[6][i])
                 return result
-        if prop_name == 'number':
+        if prop_name == 'home':
             return self.props[7]
+        if prop_name == 'work':
+            return self.props[8]
+        if prop_name == 'number':
+            return self.props[9]
         return None
 
     def to_string(self, print_props_names=None):
@@ -160,7 +208,8 @@ class Human(object):
         result = []
 
         if print_props_names is None:
-            print_props_names = ['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'number']
+            print_props_names = ['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work',
+                                 'number']
 
         for print_prop_name in print_props_names:
             if print_prop_name == 'spouse' and self.props[5]:
@@ -203,13 +252,25 @@ class Human(object):
     def set_kids(self, kid):
         self.props[6].append(kid)
 
+    def set_home(self, address):
+        if address != 0:
+            self.props[7] = address
+        else:
+            self.props[7] = None
+
+    def set_work(self, address):
+        if address != 0:
+            self.props[8] = address
+        else:
+            self.props[8] = None
+
     def set_number(self):
         number = self.props[0].to_string()[0]
         if self.props[1]:
             number += self.props[1].to_string()[0]
         number += self.props[2].to_string()[0]
         number += str(self.props[3].year) + str(self.props[3].month) + str(self.props[3].day)
-        self.props[7] = Text(number)
+        self.props[-1] = Text(number)
 
     def match(self, first, last):
         for i in self.props:
@@ -269,6 +330,27 @@ class Book(object):
         for person in self.addrbook:
             print person.to_string(prop_names)
 
+    def print_by_address(self, country, city=None, street=None, building=None, apartment=None, prop_names=None):
+        for person in self.addrbook:
+            if person.props[7]:
+                home_match = person.props[7].match(country, city, street, building, apartment)
+            else:
+                home_match = None
+            if person.props[8]:
+                work_match = person.props[8].match(country, city, street, building, apartment)
+            else:
+                work_match = None
+            if home_match and work_match and home_match.country and work_match.country:
+                print (person.to_string(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids']) +
+                       ' ' + home_match.to_string() + ' ' + work_match.to_string() + ' Home & Work')
+                continue
+            if home_match and home_match.country:
+                print (person.to_string(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids']) +
+                       home_match.to_string() + 'Home')
+            if work_match and work_match.country:
+                print (person.to_string(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids']) +
+                       work_match.to_string() + 'Work')
+
     def find_person_by_number(self, number):
         """
         Returns human or None if not found
@@ -306,6 +388,7 @@ def creation():
     human1.create_from_name_and_birthday('John', 'Doe', Date(1970, 11, 3))
     human1.set_middle_name('Dead')
     human1.set_phone('8956')
+    human1.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human1.set_number()
 
     human2 = Human()
@@ -314,12 +397,15 @@ def creation():
     human2.set_phone('8031')
     human2.set_spouse(human1)
     human2.set_number()
+    human2.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human1.set_spouse(human2)
 
     human3 = Human()
     human3.create_from_name_and_birthday('Ivan', 'Morozoff', Date(1950, 8, 4))
     human3.set_middle_name('Russian')
     human3.set_phone('9012')
+    human3.set_home(Address('Russia', 'Moscow', 'Arbat st', '86', '101'))
+    human3.set_work(Address('Russia', 'Moscow', 'Novinsky blvd', '22', '19'))
     human3.set_number()
     book.append(human3)
 
@@ -327,6 +413,8 @@ def creation():
     human4.create_from_name_and_birthday('Nicky', 'Devil', Date(1666, 13, 13))
     human4.set_middle_name('Junior')
     human4.set_phone('1488')
+    human4.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
+    human4.set_work(Address('USA', 'New York', '10th St', '120', '401'))
     human4.set_number()
     human1.set_kids(human4)
     human2.set_kids(human4)
@@ -338,12 +426,14 @@ def creation():
     human5.create_from_name_and_birthday('John', 'Snow', Date(1673, 05, 12))
     human5.set_middle_name('Bastard')
     human5.set_phone('4183')
+    human5.set_home(Address('Westeros', 'The Wall', 'Black Castle', '13', '666'))
     human5.set_number()
 
     human6 = Human()
     human6.create_from_name_and_birthday('Ygritte', 'Wild', Date(1676, 11, 28))
     human6.set_middle_name('Red')
     human6.set_phone('7913')
+    human6.set_home(Address('Westeros', 'North', 'Wastelands', '123', '45'))
     human6.set_spouse(human5)
     human6.set_number()
     human5.set_spouse(human6)
@@ -352,6 +442,8 @@ def creation():
     human7.create_from_name_and_birthday('Olga', 'Petrova', Date(1754, 9, 14))
     human7.set_middle_name('Soviet')
     human7.set_phone('2462')
+    human7.set_home(Address('Russia', 'Ekaterinburg', 'Lenina St', '103', '81'))
+    human7.set_work(Address('Russia', 'Ekaterinburg', 'Mira St', '26', '11'))
     human7.set_number()
     human5.set_kids(human3)
     human5.set_kids(human7)
@@ -363,6 +455,7 @@ def creation():
 
     out = open('Book.txt', 'wt')
     for human in book:
+        print human.to_file_string()
         out.write(human.to_file_string())
 
 
@@ -372,9 +465,10 @@ def main():
     book.load_from_file('Book.txt')
     book.sort('middle')
     # book.del_person('Nicky', 'Devil')
-    book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids'])
-    out = open('book.txt', 'wt')
-    book.save_to_file(out)
+    book.print_by_address('Russia', 'Ekaterinburg')
+    #book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
+    #out = open('book.txt', 'wt')
+    #book.save_to_file(out)
 
 #creation()
 main()
