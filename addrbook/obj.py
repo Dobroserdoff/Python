@@ -71,6 +71,17 @@ class Address(object):
 
     def match(self, country, city=None, street=None, building=None, apartment=None):
         addr = []
+        request_lenght = 0
+        if country:
+            request_lenght += 1
+            if city:
+                request_lenght += 1
+                if street:
+                    request_lenght += 1
+                    if building:
+                        request_lenght += 1
+                        if apartment:
+                            request_lenght += 1
         if country and country == self.country:
             addr.append(country)
             if city and city == self.city:
@@ -81,14 +92,8 @@ class Address(object):
                         addr.append(building)
                         if apartment and apartment == self.apartment:
                             addr.append(apartment)
-        while len(addr) < 5:
-            addr.append(None)
-        self.country = addr[0]
-        self.city = addr[1]
-        self.street = addr[2]
-        self.building = addr[3]
-        self.apartment = addr[4]
-        return self
+        if len(addr) == request_lenght:
+            return True
 
 
 class Human(object):
@@ -208,8 +213,7 @@ class Human(object):
         result = []
 
         if print_props_names is None:
-            print_props_names = ['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work',
-                                 'number']
+            print_props_names = ['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work']
 
         for print_prop_name in print_props_names:
             if print_prop_name == 'spouse' and self.props[5]:
@@ -330,26 +334,16 @@ class Book(object):
         for person in self.addrbook:
             print person.to_string(prop_names)
 
-    def print_by_address(self, country, city=None, street=None, building=None, apartment=None, prop_names=None):
+    def print_by_address(self, country, city=None, street=None, building=None, apartment=None, print_props_names=None):
         for person in self.addrbook:
-            if person.props[7]:
-                home_match = person.props[7].match(country, city, street, building, apartment)
-            else:
-                home_match = None
-            if person.props[8]:
-                work_match = person.props[8].match(country, city, street, building, apartment)
-            else:
-                work_match = None
-            if home_match and work_match and home_match.country and work_match.country:
-                print (person.to_string(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids']) +
-                       ' ' + home_match.to_string() + ' ' + work_match.to_string() + ' Home & Work')
-                continue
-            if home_match and home_match.country:
-                print (person.to_string(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids']) +
-                       home_match.to_string() + 'Home')
-            if work_match and work_match.country:
-                print (person.to_string(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids']) +
-                       work_match.to_string() + 'Work')
+            if person.props[7] and person.props[7].match(country, city, street, building, apartment) is True and \
+                    person.props[8] and person.props[8].match(country, city, street, building, apartment) is True:
+                print (person.to_string(print_props_names) + ' Home & Work')
+                break
+            if person.props[7] and person.props[7].match(country, city, street, building, apartment) is True:
+                print (person.to_string(print_props_names) + ' Home')
+            if person.props[8] and person.props[8].match(country, city, street, building, apartment) is True:
+                print (person.to_string(print_props_names) + ' Work')
 
     def find_person_by_number(self, number):
         """
@@ -404,8 +398,8 @@ def creation():
     human3.create_from_name_and_birthday('Ivan', 'Morozoff', Date(1950, 8, 4))
     human3.set_middle_name('Russian')
     human3.set_phone('9012')
-    human3.set_home(Address('Russia', 'Moscow', 'Arbat st', '86', '101'))
-    human3.set_work(Address('Russia', 'Moscow', 'Novinsky blvd', '22', '19'))
+    human3.set_home(Address('Russia', 'Moscow', 'Arbat St', '86', '101'))
+    human3.set_work(Address('Russia', 'Moscow', 'Novinsky Blvd', '22', '19'))
     human3.set_number()
     book.append(human3)
 
@@ -465,10 +459,10 @@ def main():
     book.load_from_file('Book.txt')
     book.sort('middle')
     # book.del_person('Nicky', 'Devil')
-    book.print_by_address('Russia', 'Ekaterinburg')
-    #book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
-    #out = open('book.txt', 'wt')
-    #book.save_to_file(out)
+    book.print_by_address('USA', 'New York')
+    book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
+    # out = open('book.txt', 'wt')
+    # book.save_to_file(out)
 
-#creation()
+# creation()
 main()
