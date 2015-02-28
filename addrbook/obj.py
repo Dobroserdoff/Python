@@ -50,6 +50,7 @@ class Text(object):
 
 class Address(object):
     def __init__(self, country, city=None, street=None, building=None, apartment=None):
+        # FIXME: Эти отдельные поля не используются вообще, и их можно убрать тогда (а вернуть, когда понадобятся).
         self.country = country
         self.city = city
         self.street = street
@@ -67,10 +68,14 @@ class Address(object):
     def match(self, request):
         addr = []
         for i in range(len(request)):
+            # FIXME: Тут я так и не понял, зачем первая часть условия.
             if request[i] and request[i] == self.props[i]:
                 addr.append(request[i])
         if len(addr) == len(request):
             return True
+
+        # FIXME: Здесь надо возвращать False. Сейчас функция ничего не возвращает (то есть возвращает None),
+        # FIXME: и это в условиях работает так же, как и False, но лучше False возвращать явно.
 
 
 class Person(object):
