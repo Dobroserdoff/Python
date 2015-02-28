@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class Date(object):
     def __init__(self, year, month, day):
         self.year = year
@@ -391,7 +392,6 @@ class Book(object):
 
 
 def creation():
-
     book = []
     human1 = Person()
     human1.create_from_name_and_birthday('John', 'Doe', Date(1970, 11, 3))
@@ -469,7 +469,6 @@ def creation():
 
 
 def main():
-
     book = Book()
     book.load_from_file('Book.txt')
     book.sort('middle')
@@ -478,6 +477,7 @@ def main():
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
     book.save_to_file(out)
+
 
 if __name__ == '__main__':
     # creation()
