@@ -21,4 +21,4 @@ class TestAddress(TestCase):
         self.assertFalse(addr.match(request))
 
         request = ['Russia', 'Moscow', None, '16']
-        self.assertTrue(addr.match(request))
+        self.assertFalse(addr.match(request))
