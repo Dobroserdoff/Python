@@ -479,5 +479,6 @@ def main():
     out = open('book.txt', 'wt')
     book.save_to_file(out)
 
-# creation()
-main()
+if __name__ == '__main__':
+    # creation()
+    main()
