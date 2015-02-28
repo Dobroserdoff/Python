@@ -54,52 +54,40 @@ class Address(object):
         self.street = street
         self.building = building
         self.apartment = apartment
+        self.props = [self.country, self.city, self.street, self.building, self.apartment]
 
     def to_string(self):
         addr = []
-        if self.country:
-            addr.append(self.country)
-            if self.city:
-                addr.append(self.city)
-                if self.street:
-                    addr.append(self.street)
-                    if self.building:
-                        addr.append(self.building)
-                        if self.apartment:
-                            addr.append(self.apartment)
+        for i in self.props:
+            if i:
+                addr.append(i)
         return ', '.join(addr)
 
-    def match(self, country, city=None, street=None, building=None, apartment=None):
+    def match(self, request):
         addr = []
-        request_lenght = 0
-        if country:
-            request_lenght += 1
-            if city:
-                request_lenght += 1
-                if street:
-                    request_lenght += 1
-                    if building:
-                        request_lenght += 1
-                        if apartment:
-                            request_lenght += 1
-        if country and country == self.country:
-            addr.append(country)
-            if city and city == self.city:
-                addr.append(city)
-                if street and street == self.street:
-                    addr.append(street)
-                    if building and building == self.building:
-                        addr.append(building)
-                        if apartment and apartment == self.apartment:
-                            addr.append(apartment)
-        if len(addr) == request_lenght:
+        for i in range(len(request)):
+            if request[i] and request[i] == self.props[i]:
+                addr.append(request[i])
+        if len(addr) == len(request):
             return True
 
 
-class Human(object):
-    def __init__(self):
-        self.props = [None, None, None, None, None, None, [], None, None, None]
-        # first, middle, last, birthday, phone, spouse, kids, home address, work address, number
+class Person(object):
+    def __init__(self, first=None, middle=None, last=None, birthday=None, phone=None, spouse=None, kids=None, home=None,
+                 work=None, number=None):
+        self.first = first
+        self.middle = middle
+        self.last = last
+        self.birthday = birthday
+        self.phone = phone
+        self.spouse = spouse
+        if kids:
+            self.kids = kids
+        else:
+            self.kids = []
+        self.home = home
+        self.work = work
+        self.number = number
 
     def create_from_name_and_birthday(self, first_name, last_name, birthday):
         """
@@ -108,9 +96,9 @@ class Human(object):
         :param last_name:
         :param birthday:
         """
-        self.props[0] = Text(first_name)
-        self.props[2] = Text(last_name)
-        self.props[3] = birthday
+        self.first = Text(first_name)
+        self.last = Text(last_name)
+        self.birthday = birthday
 
     def fill_from_file_string(self, line):
         """
@@ -118,19 +106,47 @@ class Human(object):
         :type line: str
         """
         line = line.split('$')[:-1]
-        for i in range(len(line)):
-            if line[i] == '':
-                self.props[i] = None
-            elif len(line[i].split('-')) > 1:
-                self.props[i] = Date(line[i].split('-')[0], line[i].split('-')[1], line[i].split('-')[2])
-            elif i == 6:
-                for j in range(len(line[i].split('&'))):
-                    self.props[i].append(Text(line[i].split('&')[j]))
-            elif i == 7 or i == 8:
-                self.props[i] = Address(line[i].split(', ')[0], line[i].split(', ')[1], line[i].split(', ')[2],
-                                        line[i].split(', ')[3], line[i].split(', ')[4])
-            else:
-                self.props[i] = Text(line[i])
+        if line[0]:
+            self.first = Text(line[0])
+        else:
+            self.first = None
+        if line[1]:
+            self.middle = Text(line[1])
+        else:
+            self.middle = None
+        if line[2]:
+            self.last = Text(line[2])
+        else:
+            self.last = None
+        if line[3]:
+            self.birthday = Date(line[3].split('-')[0], line[3].split('-')[1], line[3].split('-')[2])
+        else:
+            self.birthday = None
+        if line[4]:
+            self.phone = Text(line[4])
+        else:
+            self.phone = None
+        if line[5]:
+            self.spouse = Text(line[5])
+        else:
+            self.spouse = None
+        if len(line[6]) > 0:
+            for j in range(len(line[6].split('&'))):
+                self.kids.append(Text(line[6].split('&')[j]))
+        if line[7]:
+            self.home = Address(line[7].split(', ')[0], line[7].split(', ')[1], line[7].split(', ')[2],
+                                line[7].split(', ')[3], line[7].split(', ')[4])
+        else:
+            self.spouse = None
+        if line[8]:
+            self.work = Address(line[8].split(', ')[0], line[8].split(', ')[1], line[8].split(', ')[2],
+                                line[8].split(', ')[3], line[8].split(', ')[4])
+        else:
+            self.work = None
+        if line[9]:
+            self.number = Text(line[9])
+        else:
+            self.number = None
 
     def to_file_string(self):
         """ return srt to store in file
@@ -138,21 +154,23 @@ class Human(object):
         """
         result = []
         heritage = []
-        for i in self.props:
-            if i:
-                if type(i) is list:
-                    for j in range(len(i)):
-                        if i[j]:
-                            heritage.append(i[j].to_string(['number']))
-                        else:
-                            heritage.append('')
+        person = [self.first, self.middle, self.last, self.birthday, self.phone, self.spouse, self.kids, self.home,
+                  self.work, self.number]
+        for prop_field in person:
+            if self.spouse and prop_field is self.spouse:
+                result.append(self.spouse.to_string(['number']))
+            elif prop_field is self.kids:
+                if len(self.kids) > 0:
+                    for j in self.kids:
+                        heritage.append(j.to_string(['number']))
                     result.append('&'.join(heritage))
-                elif type(i) is Human:
-                    result.append(i.to_string(['number']))
                 else:
-                    result.append(i.to_string())
+                    result.append('')
             else:
-                result.append('')
+                if prop_field:
+                    result.append(prop_field.to_string())
+                else:
+                    result.append('')
         result.append('\n')
         return '$'.join(result)
 
@@ -180,29 +198,29 @@ class Human(object):
         :rtype: Text | Data | None
         """
         if prop_name == 'first':
-            return self.props[0]
+            return self.first
         if prop_name == 'middle':
-            return self.props[1]
+            return self.middle
         if prop_name == 'last':
-            return self.props[2]
+            return self.last
         if prop_name == 'birthday':
-            return self.props[3]
+            return self.birthday
         if prop_name == 'phone':
-            return self.props[4]
+            return self.phone
         if prop_name == 'spouse':
-            return self.props[5]
+            return self.spouse
         if prop_name == 'kids':
             result = []
-            if self.props[6]:
-                for i in range(len(self.props[6])):
-                    result.append(self.props[6][i])
+            if self.kids:
+                for i in range(len(self.kids)):
+                    result.append(self.kids[i])
                 return result
         if prop_name == 'home':
-            return self.props[7]
+            return self.home
         if prop_name == 'work':
-            return self.props[8]
+            return self.work
         if prop_name == 'number':
-            return self.props[9]
+            return self.number
         return None
 
     def to_string(self, print_props_names=None):
@@ -216,15 +234,15 @@ class Human(object):
             print_props_names = ['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work']
 
         for print_prop_name in print_props_names:
-            if print_prop_name == 'spouse' and self.props[5]:
-                result.append(self.props[5].to_string(['first', 'last']))
+            if print_prop_name == 'spouse' and self.spouse:
+                result.append(self.spouse.to_string(['first', 'last']))
                 continue
 
             if print_prop_name == 'kids':
-                if self.props[6]:
-                    for i in range(len(self.props[6])):
-                        if self.props[6][i]:
-                            result.append(self.props[6][i].to_string(['first', 'last']))
+                if self.kids:
+                    for i in range(len(self.kids)):
+                        if self.kids[i]:
+                            result.append(self.kids[i].to_string(['first', 'last']))
                     continue
 
             prop_value = self.get_prop_by_name(print_prop_name)
@@ -237,67 +255,64 @@ class Human(object):
 
     def set_middle_name(self, name):
         if name != 0:
-            self.props[1] = Text(name)
+            self.middle = Text(name)
         else:
-            self.props[1] = None
+            self.middle = None
 
     def set_phone(self, phone):
         if phone != 0:
-            self.props[4] = Text(phone)
+            self.phone = Text(phone)
         else:
-            self.props[4] = None
+            self.phone = None
 
     def set_spouse(self, person):
         if person != 0:
-            self.props[5] = person
+            self.spouse = person
         else:
-            self.props[5] = None
+            self.spouse = None
 
     def set_kids(self, kid):
-        self.props[6].append(kid)
+        self.kids.append(kid)
 
     def set_home(self, address):
         if address != 0:
-            self.props[7] = address
+            self.home = address
         else:
-            self.props[7] = None
+            self.home = None
 
     def set_work(self, address):
         if address != 0:
-            self.props[8] = address
+            self.work = address
         else:
-            self.props[8] = None
+            self.work = None
 
     def set_number(self):
-        number = self.props[0].to_string()[0]
-        if self.props[1]:
-            number += self.props[1].to_string()[0]
-        number += self.props[2].to_string()[0]
-        number += str(self.props[3].year) + str(self.props[3].month) + str(self.props[3].day)
-        self.props[-1] = Text(number)
+        number = self.first.to_string()[0]
+        if self.middle:
+            number += self.middle.to_string()[0]
+        number += self.last.to_string()[0]
+        number += str(self.birthday.year) + str(self.birthday.month) + str(self.birthday.day)
+        self.number = Text(number)
 
     def match(self, first, last):
-        for i in self.props:
-            if i and i.to_string() == first:
-                for j in self.props:
-                    if j and j.to_string() == last:
-                        return True
-            else:
-                return False
+        if first == self.first.to_string() and last == self.last.to_string():
+            return True
+        else:
+            return False
 
-    def match_number(self, number):
-        if self.props[-1].to_string() == number.to_string():
+    def match_number(self, request):
+        if self.number.to_string() == request.to_string():
             return True
         else:
             return False
 
     def spouse_kids_fix(self, book):
-        if self.props[5]:
-            self.props[5] = book.find_person_by_number(self.props[5])
-        if self.props[6]:
-            for i in range(len(self.props[6])):
-                if self.props[6][i]:
-                    self.props[6][i] = book.find_person_by_number(self.props[6][i])
+        if self.spouse:
+            self.spouse = book.find_person_by_number(self.spouse)
+        if len(self.kids) > 0:
+            for i in range(len(self.kids)):
+                if self.kids[i]:
+                    self.kids[i] = book.find_person_by_number(self.kids[i])
 
 
 class Book(object):
@@ -311,7 +326,7 @@ class Book(object):
     def load_from_file(self, filename):
         my_file = open(filename)
         for line in my_file:
-            human = Human()
+            human = Person()
             human.fill_from_file_string(line)
             self.addrbook.append(human)
         for person in self.addrbook:
@@ -334,24 +349,24 @@ class Book(object):
         for person in self.addrbook:
             print person.to_string(prop_names)
 
-    def print_by_address(self, country, city=None, street=None, building=None, apartment=None, print_props_names=None):
+    def print_by_address(self, request, print_props_names=None):
         for person in self.addrbook:
-            if person.props[7] and person.props[7].match(country, city, street, building, apartment) is True and \
-                    person.props[8] and person.props[8].match(country, city, street, building, apartment) is True:
+            if person.home and person.home.match(request) is True and \
+                    person.work and person.work.match(request) is True:
                 print (person.to_string(print_props_names) + ' Home & Work')
                 break
-            if person.props[7] and person.props[7].match(country, city, street, building, apartment) is True:
+            if person.home and person.home.match(request) is True:
                 print (person.to_string(print_props_names) + ' Home')
-            if person.props[8] and person.props[8].match(country, city, street, building, apartment) is True:
+            if person.work and person.work.match(request) is True:
                 print (person.to_string(print_props_names) + ' Work')
 
     def find_person_by_number(self, number):
         """
         Returns human or None if not found
         :param number:
-        :rtype: Human
+        :rtype: Person
         """
-        result = Human()
+        result = Person()
         for person in self.addrbook:
             if person.match_number(number):
                 result = person
@@ -363,9 +378,9 @@ class Book(object):
     def find_person_by_name(self, first, last):
         """
         :param first name, last name:
-        :rtype: Human
+        :rtype: Person
         """
-        result = Human()
+        result = Person()
         for person in self.addrbook:
             if person.match(first, last):
                 result = person
@@ -378,14 +393,14 @@ class Book(object):
 def creation():
 
     book = []
-    human1 = Human()
+    human1 = Person()
     human1.create_from_name_and_birthday('John', 'Doe', Date(1970, 11, 3))
     human1.set_middle_name('Dead')
     human1.set_phone('8956')
     human1.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human1.set_number()
 
-    human2 = Human()
+    human2 = Person()
     human2.create_from_name_and_birthday('Jane', 'Doe', Date(1975, 2, 4))
     human2.set_middle_name('Zombie')
     human2.set_phone('8031')
@@ -394,7 +409,7 @@ def creation():
     human2.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human1.set_spouse(human2)
 
-    human3 = Human()
+    human3 = Person()
     human3.create_from_name_and_birthday('Ivan', 'Morozoff', Date(1950, 8, 4))
     human3.set_middle_name('Russian')
     human3.set_phone('9012')
@@ -403,7 +418,7 @@ def creation():
     human3.set_number()
     book.append(human3)
 
-    human4 = Human()
+    human4 = Person()
     human4.create_from_name_and_birthday('Nicky', 'Devil', Date(1666, 13, 13))
     human4.set_middle_name('Junior')
     human4.set_phone('1488')
@@ -416,14 +431,14 @@ def creation():
     book.append(human2)
     book.append(human4)
 
-    human5 = Human()
+    human5 = Person()
     human5.create_from_name_and_birthday('John', 'Snow', Date(1673, 05, 12))
     human5.set_middle_name('Bastard')
     human5.set_phone('4183')
     human5.set_home(Address('Westeros', 'The Wall', 'Black Castle', '13', '666'))
     human5.set_number()
 
-    human6 = Human()
+    human6 = Person()
     human6.create_from_name_and_birthday('Ygritte', 'Wild', Date(1676, 11, 28))
     human6.set_middle_name('Red')
     human6.set_phone('7913')
@@ -432,7 +447,7 @@ def creation():
     human6.set_number()
     human5.set_spouse(human6)
 
-    human7 = Human()
+    human7 = Person()
     human7.create_from_name_and_birthday('Olga', 'Petrova', Date(1754, 9, 14))
     human7.set_middle_name('Soviet')
     human7.set_phone('2462')
@@ -449,7 +464,7 @@ def creation():
 
     out = open('Book.txt', 'wt')
     for human in book:
-        print human.to_file_string()
+        # print human.to_string()
         out.write(human.to_file_string())
 
 
@@ -459,10 +474,10 @@ def main():
     book.load_from_file('Book.txt')
     book.sort('middle')
     # book.del_person('Nicky', 'Devil')
-    book.print_by_address('USA', 'New York')
+    book.print_by_address(['USA', 'New York'])
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
-    # out = open('book.txt', 'wt')
-    # book.save_to_file(out)
+    out = open('book.txt', 'wt')
+    book.save_to_file(out)
 
 # creation()
 main()
