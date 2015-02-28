@@ -74,8 +74,8 @@ class Address(object):
         if len(addr) == len(request):
             return True
 
-        # FIXME: Здесь надо возвращать False. Сейчас функция ничего не возвращает (то есть возвращает None),
-        # FIXME: и это в условиях работает так же, как и False, но лучше False возвращать явно.
+            # FIXME: Здесь надо возвращать False. Сейчас функция ничего не возвращает (то есть возвращает None),
+            # FIXME: и это в условиях работает так же, как и False, но лучше False возвращать явно.
 
 
 class Person(object):
@@ -106,20 +106,33 @@ class Person(object):
         self.last = Text(last_name)
         self.birthday = birthday
 
+    # FIXME: Это специальное ключевое слово, которое позволяет убрать параметр self, если он не используется в коде.
+    # FIXME: Есть ещё несколько хитростей с ним, до которых мы доберёмся позже.
+    @staticmethod
+    # FIXME: Название метода, начинающеся с подчёркивания — общепринятое соглашение для «частных» (private) методов.
+    # FIXME: Считается, что такие методы нельзя вызывать не из этого же класса. PyCharm такие неправильные вызовы
+    # FIXME: будет подчёркивать.
+    def _load_text(text):
+        if text:
+            return Text(text)
+        else:
+            return None
+
     def fill_from_file_string(self, line):
         """
         convert specified string of file into personal data to work with
         :type line: str
         """
         line = line.split('$')[:-1]
-        if line[0]:
-            self.first = Text(line[0])
-        else:
-            self.first = None
+        # FIXME: Остальные места можно упростить аналогично.
+        self.first = self._load_text(line[0])
         if line[1]:
             self.middle = Text(line[1])
         else:
             self.middle = None
+        # FIXME: или есть такая же, но более короткая конструкция
+        # self.last = Text(line[2]) if line[2] else None
+        # FIXME: но лично мне отдельный метод нравится больше
         if line[2]:
             self.last = Text(line[2])
         else:
@@ -140,6 +153,8 @@ class Person(object):
             for j in range(len(line[6].split('&'))):
                 self.kids.append(Text(line[6].split('&')[j]))
         if line[7]:
+            # FIXME: Вот это некрасиво и неэффективно. Нужно один раз сделать «parts = line[7].split», а потом писать
+            # FIXME: parts[0], parts[1] и так далее.
             self.home = Address(line[7].split(', ')[0], line[7].split(', ')[1], line[7].split(', ')[2],
                                 line[7].split(', ')[3], line[7].split(', ')[4])
         else:
@@ -166,6 +181,7 @@ class Person(object):
             if self.spouse and prop_field is self.spouse:
                 result.append(self.spouse.to_string(['number']))
             elif prop_field is self.kids:
+                # FIXME: Проверка длины не нужна. И без такой проверки (и блока else) будет работать правильно.
                 if len(self.kids) > 0:
                     for j in self.kids:
                         heritage.append(j.to_string(['number']))
@@ -173,11 +189,13 @@ class Person(object):
                 else:
                     result.append('')
             else:
+                # FIXME: Аналогично одному из верхний примечаний можно:
+                # result.append(prop_field.to_string() if prop_field else '')
                 if prop_field:
                     result.append(prop_field.to_string())
                 else:
                     result.append('')
-        result.append('\n')
+        result.append('\n') # FIXME: А это зачем?
         return '$'.join(result)
 
     def compare(self, other_human, sort_prop='first'):
