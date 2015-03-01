@@ -295,7 +295,7 @@ class Person(object):
         else:
             self.spouse = None
 
-    def set_kids(self, kid):
+    def add_kid(self, kid):
         self.kids.append(kid)
 
     def set_home(self, address):
@@ -448,8 +448,8 @@ def creation():
     human4.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human4.set_work(Address('USA', 'New York', '10th St', '120', '401'))
     human4.set_number()
-    human1.set_kids(human4)
-    human2.set_kids(human4)
+    human1.add_kid(human4)
+    human2.add_kid(human4)
     book.append(human1)
     book.append(human2)
     book.append(human4)
@@ -477,10 +477,10 @@ def creation():
     human7.set_home(Address('Russia', 'Ekaterinburg', 'Lenina St', '103', '81'))
     human7.set_work(Address('Russia', 'Ekaterinburg', 'Mira St', '26', '11'))
     human7.set_number()
-    human5.set_kids(human3)
-    human5.set_kids(human7)
-    human6.set_kids(human3)
-    human6.set_kids(human7)
+    human5.add_kid(human3)
+    human5.add_kid(human7)
+    human6.add_kid(human3)
+    human6.add_kid(human7)
     book.append(human5)
     book.append(human6)
     book.append(human7)
@@ -496,7 +496,7 @@ def main():
     book.load_from_file('Book.txt')
     book.sort('middle')
     # book.del_person('Nicky', 'Devil')
-    book.print_by_address(['USA', 'New York'])
+    # book.print_by_address(['USA', 'New York'])
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
     book.save_to_file(out)
