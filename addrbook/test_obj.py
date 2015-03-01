@@ -40,9 +40,12 @@ class TestPerson(TestCase):
         self.assertEqual(person.to_string(), test_person.to_string())
 
     def test_fill_from_file_string(self):
+        home = obj.Address()
+        home.props = ['Russia', 'Moscow', 'Arbat St', '86', '101']
+        work = obj.Address()
+        work.props = ['Russia', 'Moscow', 'Novinsky Blvd', '22', '19']
         person = obj.Person(obj.Text('Ivan'), obj.Text('Russian'), obj.Text('Morozoff'), obj.Date(1950, 8, 4),
-                            obj.Text('9012'), None, None, obj.Address('Russia', 'Moscow', 'Arbat St', '86', '101'),
-                            obj.Address('Russia', 'Moscow', 'Novinsky Blvd', '22', '19'), None)
+                            obj.Text('9012'), None, None, home, work)
 
         test_person = obj.Person()
         book = obj.Book()
@@ -54,3 +57,20 @@ class TestPerson(TestCase):
             test_person.spouse_kids_fix(book)
             addr_book.append(test_person.to_string())
         self.assertIn(person.to_string(), addr_book)
+
+    def test_to_file_string(self):
+        book = obj.Book()
+        book.load_from_file('Book.txt')
+        human = obj.Person()
+        human.create_from_name_and_birthday('Ygritte', 'Wild', obj.Date(1676, 11, 28))
+        human.set_middle_name('Red')
+        human.set_phone('7913')
+        human.set_home(['Westeros', 'North', 'Wastelands', '123', '45'])
+        human.set_spouse(book.find_person_by_name('John', 'Snow'))
+        human.add_kid(book.find_person_by_name('Ivan', 'Morozoff'))
+        human.add_kid(book.find_person_by_name('Olga', 'Petrova'))
+        human.set_number()
+
+        addr_book = open('Book.txt')
+        self.assertIn(human.to_file_string(), addr_book)
+
