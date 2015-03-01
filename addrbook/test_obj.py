@@ -4,7 +4,8 @@ import obj
 
 class TestAddress(TestCase):
     def test_match(self):
-        addr = obj.Address('Russia', 'Moscow', 'Tolstogo', '16')
+        addr = obj.Address()
+        addr.props = ['Russia', 'Moscow', 'Tolstogo', '16', None]
 
         request = ['Russia']
         self.assertTrue(addr.match(request))
@@ -18,16 +19,15 @@ class TestAddress(TestCase):
         request = ['Russia', 'Moscow', 'Tolstogo', '16', '52']
         self.assertFalse(addr.match(request))
 
-        request = ['Russia', 'Moscow', None, '16']
+        request = ['Russia', 'Moscow', '16']
         self.assertFalse(addr.match(request))
 
     def test_to_string(self):
-        addr = obj.Address('Russia', 'Moscow', 'Tolstogo', '16')
-
+        addr = obj.Address()
+        addr.props = ['Russia', 'Moscow', 'Tolstogo', '16']
         self.assertEqual('Russia, Moscow, Tolstogo, 16', addr.to_string())
 
-        addr = obj.Address('Russia', 'Moscow', None, '16')
-
+        addr.props = ['Russia', 'Moscow', None, '16']
         self.assertEqual('Russia, Moscow, 16', addr.to_string())
 
 

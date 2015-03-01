@@ -64,7 +64,9 @@ class Address(object):
         for i in range(len(request)):
             if request[i] == self.props[i]:
                 addr.append(request[i])
-        if len(addr) != len(request):
+        if len(addr) == len(request):
+            return True
+        else:
             return False
 
 
@@ -132,9 +134,9 @@ class Person(object):
 
         if line[8]:
             parts = line[8].split(', ')
-            self.home = Address()
+            self.work = Address()
             for i in range(len(parts)):
-                self.home.props[i] = parts[i]
+                self.work.props[i] = parts[i]
 
         self.number = self._load_text(line[9])
 
@@ -467,5 +469,5 @@ def main():
 
 
 if __name__ == '__main__':
-    creation()
-    #main()
+    # creation()
+    main()
