@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 class Date(object):
     def __init__(self, year, month, day):
         self.year = year
@@ -48,13 +49,8 @@ class Text(object):
 
 
 class Address(object):
-    def __init__(self, country, city=None, street=None, building=None, apartment=None):
-        self.country = country
-        self.city = city
-        self.street = street
-        self.building = building
-        self.apartment = apartment
-        self.props = [self.country, self.city, self.street, self.building, self.apartment]
+    def __init__(self):
+        self.props = [None, None, None, None, None]
 
     def to_string(self):
         addr = []
@@ -66,10 +62,12 @@ class Address(object):
     def match(self, request):
         addr = []
         for i in range(len(request)):
-            if request[i] and request[i] == self.props[i]:
+            if request[i] == self.props[i]:
                 addr.append(request[i])
         if len(addr) == len(request):
             return True
+        else:
+            return False
 
 
 class Person(object):
@@ -96,9 +94,16 @@ class Person(object):
         :param last_name:
         :param birthday:
         """
-        self.first = Text(first_name)
-        self.last = Text(last_name)
+        self.first = self._load_text(first_name)
+        self.last = self._load_text(last_name)
         self.birthday = birthday
+
+    @staticmethod
+    def _load_text(text):
+        if text:
+            return Text(text)
+        else:
+            return None
 
     def fill_from_file_string(self, line):
         """
@@ -106,47 +111,34 @@ class Person(object):
         :type line: str
         """
         line = line.split('$')[:-1]
-        if line[0]:
-            self.first = Text(line[0])
-        else:
-            self.first = None
-        if line[1]:
-            self.middle = Text(line[1])
-        else:
-            self.middle = None
-        if line[2]:
-            self.last = Text(line[2])
-        else:
-            self.last = None
+        self.first = self._load_text(line[0])
+        self.middle = self._load_text(line[1])
+        self.last = self._load_text(line[2])
+
         if line[3]:
-            self.birthday = Date(line[3].split('-')[0], line[3].split('-')[1], line[3].split('-')[2])
-        else:
-            self.birthday = None
-        if line[4]:
-            self.phone = Text(line[4])
-        else:
-            self.phone = None
-        if line[5]:
-            self.spouse = Text(line[5])
-        else:
-            self.spouse = None
+            parts = line[3].split('-')
+            self.birthday = Date(parts[0], parts[1], parts[2])
+
+        self.phone = self._load_text(line[4])
+        self.spouse = self._load_text(line[5])
+
         if len(line[6]) > 0:
             for j in range(len(line[6].split('&'))):
                 self.kids.append(Text(line[6].split('&')[j]))
+
         if line[7]:
-            self.home = Address(line[7].split(', ')[0], line[7].split(', ')[1], line[7].split(', ')[2],
-                                line[7].split(', ')[3], line[7].split(', ')[4])
-        else:
-            self.spouse = None
+            parts = line[7].split(', ')
+            self.home = Address()
+            for i in range(len(parts)):
+                self.home.props[i] = parts[i]
+
         if line[8]:
-            self.work = Address(line[8].split(', ')[0], line[8].split(', ')[1], line[8].split(', ')[2],
-                                line[8].split(', ')[3], line[8].split(', ')[4])
-        else:
-            self.work = None
-        if line[9]:
-            self.number = Text(line[9])
-        else:
-            self.number = None
+            parts = line[8].split(', ')
+            self.work = Address()
+            for i in range(len(parts)):
+                self.work.props[i] = parts[i]
+
+        self.number = self._load_text(line[9])
 
     def to_file_string(self):
         """ return srt to store in file
@@ -160,17 +152,11 @@ class Person(object):
             if self.spouse and prop_field is self.spouse:
                 result.append(self.spouse.to_string(['number']))
             elif prop_field is self.kids:
-                if len(self.kids) > 0:
-                    for j in self.kids:
-                        heritage.append(j.to_string(['number']))
-                    result.append('&'.join(heritage))
-                else:
-                    result.append('')
+                for j in self.kids:
+                    heritage.append(j.to_string(['number']))
+                result.append('&'.join(heritage))
             else:
-                if prop_field:
-                    result.append(prop_field.to_string())
-                else:
-                    result.append('')
+                result.append(prop_field.to_string() if prop_field else '')
         result.append('\n')
         return '$'.join(result)
 
@@ -239,11 +225,9 @@ class Person(object):
                 continue
 
             if print_prop_name == 'kids':
-                if self.kids:
-                    for i in range(len(self.kids)):
-                        if self.kids[i]:
-                            result.append(self.kids[i].to_string(['first', 'last']))
-                    continue
+                for kid in self.kids:
+                    result.append(kid.to_string(['first', 'last']))
+                continue
 
             prop_value = self.get_prop_by_name(print_prop_name)
 
@@ -271,20 +255,20 @@ class Person(object):
         else:
             self.spouse = None
 
-    def set_kids(self, kid):
+    def add_kid(self, kid):
         self.kids.append(kid)
 
     def set_home(self, address):
         if address != 0:
-            self.home = address
-        else:
-            self.home = None
+            self.home = Address()
+            for i in range(len(address)):
+                self.home.props[i] = address[i]
 
     def set_work(self, address):
         if address != 0:
-            self.work = address
-        else:
-            self.work = None
+            self.work = Address()
+            for i in range(len(address)):
+                self.work.props[i] = address[i]
 
     def set_number(self):
         number = self.first.to_string()[0]
@@ -292,7 +276,7 @@ class Person(object):
             number += self.middle.to_string()[0]
         number += self.last.to_string()[0]
         number += str(self.birthday.year) + str(self.birthday.month) + str(self.birthday.day)
-        self.number = Text(number)
+        self.number = self._load_text(number)
 
     def match(self, first, last):
         if first == self.first.to_string() and last == self.last.to_string():
@@ -391,13 +375,12 @@ class Book(object):
 
 
 def creation():
-
     book = []
     human1 = Person()
     human1.create_from_name_and_birthday('John', 'Doe', Date(1970, 11, 3))
     human1.set_middle_name('Dead')
     human1.set_phone('8956')
-    human1.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
+    human1.set_home(['USA', 'New York', '5th Ave', '86', '101'])
     human1.set_number()
 
     human2 = Person()
@@ -406,15 +389,15 @@ def creation():
     human2.set_phone('8031')
     human2.set_spouse(human1)
     human2.set_number()
-    human2.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
+    human2.set_home(['USA', 'New York', '5th Ave', '86', '101'])
     human1.set_spouse(human2)
 
     human3 = Person()
     human3.create_from_name_and_birthday('Ivan', 'Morozoff', Date(1950, 8, 4))
     human3.set_middle_name('Russian')
     human3.set_phone('9012')
-    human3.set_home(Address('Russia', 'Moscow', 'Arbat St', '86', '101'))
-    human3.set_work(Address('Russia', 'Moscow', 'Novinsky Blvd', '22', '19'))
+    human3.set_home(['Russia', 'Moscow', 'Arbat St', '86', '101'])
+    human3.set_work(['Russia', 'Moscow', 'Novinsky Blvd', '22', '19'])
     human3.set_number()
     book.append(human3)
 
@@ -422,11 +405,11 @@ def creation():
     human4.create_from_name_and_birthday('Nicky', 'Devil', Date(1666, 13, 13))
     human4.set_middle_name('Junior')
     human4.set_phone('1488')
-    human4.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
-    human4.set_work(Address('USA', 'New York', '10th St', '120', '401'))
+    human4.set_home(['USA', 'New York', '5th Ave', '86', '101'])
+    human4.set_work(['USA', 'New York', '10th St', '120', '401'])
     human4.set_number()
-    human1.set_kids(human4)
-    human2.set_kids(human4)
+    human1.add_kid(human4)
+    human2.add_kid(human4)
     book.append(human1)
     book.append(human2)
     book.append(human4)
@@ -435,14 +418,14 @@ def creation():
     human5.create_from_name_and_birthday('John', 'Snow', Date(1673, 05, 12))
     human5.set_middle_name('Bastard')
     human5.set_phone('4183')
-    human5.set_home(Address('Westeros', 'The Wall', 'Black Castle', '13', '666'))
+    human5.set_home(['Westeros', 'The Wall', 'Black Castle', '13', '666'])
     human5.set_number()
 
     human6 = Person()
     human6.create_from_name_and_birthday('Ygritte', 'Wild', Date(1676, 11, 28))
     human6.set_middle_name('Red')
     human6.set_phone('7913')
-    human6.set_home(Address('Westeros', 'North', 'Wastelands', '123', '45'))
+    human6.set_home(['Westeros', 'North', 'Wastelands', '123', '45'])
     human6.set_spouse(human5)
     human6.set_number()
     human5.set_spouse(human6)
@@ -451,33 +434,34 @@ def creation():
     human7.create_from_name_and_birthday('Olga', 'Petrova', Date(1754, 9, 14))
     human7.set_middle_name('Soviet')
     human7.set_phone('2462')
-    human7.set_home(Address('Russia', 'Ekaterinburg', 'Lenina St', '103', '81'))
-    human7.set_work(Address('Russia', 'Ekaterinburg', 'Mira St', '26', '11'))
+    human7.set_home(['Russia', 'Ekaterinburg', 'Lenina St', '103', '81'])
+    human7.set_work(['Russia', 'Ekaterinburg', 'Mira St', '26', '11'])
     human7.set_number()
-    human5.set_kids(human3)
-    human5.set_kids(human7)
-    human6.set_kids(human3)
-    human6.set_kids(human7)
+    human5.add_kid(human3)
+    human5.add_kid(human7)
+    human6.add_kid(human3)
+    human6.add_kid(human7)
     book.append(human5)
     book.append(human6)
     book.append(human7)
 
     out = open('Book.txt', 'wt')
     for human in book:
-        # print human.to_string()
+        print human.to_file_string()
         out.write(human.to_file_string())
 
 
 def main():
-
     book = Book()
     book.load_from_file('Book.txt')
     book.sort('middle')
     # book.del_person('Nicky', 'Devil')
-    book.print_by_address(['USA', 'New York'])
+    # book.print_by_address(['USA', 'New York'])
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
     book.save_to_file(out)
 
-# creation()
-main()
+
+if __name__ == '__main__':
+    # creation()
+    main()
