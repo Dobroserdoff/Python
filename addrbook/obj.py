@@ -157,11 +157,7 @@ class Person(object):
                 result.append('&'.join(heritage))
             else:
                 result.append(prop_field.to_string() if prop_field else '')
-                # Приятная синтаксическая плюшка
-
         result.append('\n')
-        # Q: А это зачем? A: Люди в книге разделены по строкам и строками потом загружаются.
-
         return '$'.join(result)
 
     def compare(self, other_human, sort_prop='first'):
@@ -282,7 +278,7 @@ class Person(object):
             number += self.middle.to_string()[0]
         number += self.last.to_string()[0]
         number += str(self.birthday.year) + str(self.birthday.month) + str(self.birthday.day)
-        self.number = Text(number)
+        self.number = self._load_text(number)
 
     def match(self, first, last):
         if first == self.first.to_string() and last == self.last.to_string():
