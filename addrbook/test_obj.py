@@ -132,8 +132,8 @@ class TestBook(TestCase):
         book = obj.Book()
         book.load_from_file('Book.txt')
         book_print = []
-        for i in range(len(book.addrbook)):
-            book_print.append(book.addrbook[i].to_string(['first', 'last', 'birthday']))
+        for person in book.addrbook:
+            book_print.append(person.to_string(['first', 'last', 'birthday']))
         self.assertIn(human.to_string(), book_print)
 
     def test_del_person(self):
