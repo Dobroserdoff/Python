@@ -225,11 +225,9 @@ class Person(object):
                 continue
 
             if print_prop_name == 'kids':
-                if self.kids:
-                    for i in range(len(self.kids)):
-                        if self.kids[i]:
-                            result.append(self.kids[i].to_string(['first', 'last']))
-                    continue
+                for kid in self.kids:
+                    result.append(kid.to_string(['first', 'last']))
+                continue
 
             prop_value = self.get_prop_by_name(print_prop_name)
 
