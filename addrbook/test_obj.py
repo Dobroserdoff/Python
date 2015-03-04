@@ -25,15 +25,15 @@ class TestAddress(TestCase):
     def test_to_string(self):
         addr = obj.Address()
         addr.props = ['Russia', 'Moscow', 'Tolstogo', '16']
-        self.assertEqual('Russia, Moscow, Tolstogo, 16', addr.to_string())
+        self.assertEqual('Russia, Moscow, Tolstogo, 16', str(addr))
 
         addr.props = ['Russia', 'Moscow', None, '16']
-        self.assertEqual('Russia, Moscow, 16', addr.to_string())
+        self.assertEqual('Russia, Moscow, 16', str(addr))
 
 
 class TestPerson(TestCase):
     def test_create_from_name_and_birthday(self):
-        person = obj.Person(obj.Text('Name'), obj.Text('Lastname'), obj.Date(1982, 12, 01))
+        person = obj.Person('Name', 'Lastname', obj.Date(1982, 12, 01))
 
         test_person = obj.Person()
         test_person.create_from_name_and_birthday('Name', 'Lastname', obj.Date(1982, 12, 01))
@@ -44,8 +44,7 @@ class TestPerson(TestCase):
         home.props = ['Russia', 'Moscow', 'Arbat St', '86', '101']
         work = obj.Address()
         work.props = ['Russia', 'Moscow', 'Novinsky Blvd', '22', '19']
-        person = obj.Person(obj.Text('Ivan'), obj.Text('Russian'), obj.Text('Morozoff'), obj.Date(1950, 8, 4),
-                            obj.Text('9012'), None, None, home, work)
+        person = obj.Person('Ivan', 'Russian', 'Morozoff', obj.Date(1950, 8, 4), '9012', None, None, home, work)
 
         test_person = obj.Person()
         book = obj.Book()
@@ -119,7 +118,7 @@ class TestPerson(TestCase):
         other_human.set_middle_name('Dead')
         other_human.set_number()
 
-        request = obj.Text('JBS1673512')
+        request = 'JBS1673512'
         self.assertTrue(human.match_number(request))
         self.assertFalse(other_human.match_number(request))
 
@@ -141,8 +140,8 @@ class TestBook(TestCase):
         book.load_from_file('Book.txt')
         book.del_person('John', 'Doe')
         book_print = []
-        for i in range(len(book.addrbook)):
-            book_print.append(book.addrbook[i].to_string(['first', 'last', 'birthday']))
+        for i in book.addrbook:
+            book_print.append(i.to_string(['first', 'last', 'birthday']))
 
         human = obj.Person()
         human.create_from_name_and_birthday('John', 'Doe', obj.Date(1970, 11, 3))
@@ -165,5 +164,6 @@ class TestBook(TestCase):
 
         book = obj.Book()
         book.load_from_file('Book.txt')
-        other_human = book.find_person_by_name(human.first.to_string(), human.last.to_string())
+        other_human = book.find_person_by_name(human.first, human.last)
         self.assertEqual(human.to_string(), other_human.to_string(['first', 'last', 'birthday']))
+

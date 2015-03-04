@@ -230,7 +230,7 @@ class Person(object):
 
             prop_value = self.get_prop_by_name(print_prop_name)
 
-            if prop_value is None:
+            if prop_value is None or prop_value is '':
                 continue
 
             result.append(str(prop_value))
@@ -466,8 +466,8 @@ def main():
     # book.del_person('Jane', 'Doe')
     # book.print_by_address(['USA', 'New York'])
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
-    #out = open('book.txt', 'wt')
-    #book.save_to_file(out)
+    out = open('book.txt', 'wt')
+    book.save_to_file(out)
 
 
 if __name__ == '__main__':

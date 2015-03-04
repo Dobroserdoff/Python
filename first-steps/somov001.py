@@ -84,8 +84,8 @@ except IndexError as e:
 n1 = Number(6)
 n2 = Number(5)
 
-print id(n1)
-print id(n2)
+#print id(n1)
+#print id(n2)
 
 # >              1
 # <             -1
@@ -97,7 +97,7 @@ print id(n2)
 if n1 >= n2:  # n1.__cmp__(n2) in [0, 1]
     print '6 > 5'
 
-for element in LettersIter():
+for element in RangeIter(10):
     print element
 
 letters_iter = LettersIter()
