@@ -5,14 +5,14 @@ class Date(object):
         self.month = month
         self.day = day
 
-    def to_string(self):
+    def __str__(self):
         """
         creates nice string of date to print
         :return: str
         """
         return '%s-%s-%s' % (self.year, self.month, self.day)
 
-    def compare(self, other_date):
+    def __cmp__(self, other_date):
         """
         compares date with other_date
         :param other_date: date to compare with
@@ -33,26 +33,11 @@ class Date(object):
         return 0
 
 
-class Text(object):
-    def __init__(self, s):
-        self.s = s
-
-    def to_string(self):
-        return '%s' % self.s
-
-    def compare(self, other_text):
-        if self.s < other_text.s:
-            return -1
-        if self.s > other_text.s:
-            return 1
-        return 0
-
-
 class Address(object):
     def __init__(self):
         self.props = [None, None, None, None, None]
 
-    def to_string(self):
+    def __str__(self):
         addr = []
         for i in self.props:
             if i:
@@ -86,6 +71,24 @@ class Person(object):
         self.home = home
         self.work = work
         self.number = number
+        self.index = 0
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        person = [self.first, self.middle, self.last, self.birthday, self.phone, self.spouse, self.kids, self.home,
+                  self.work, self.number]
+        if self.index == len(person):
+            raise StopIteration()
+        result = person[self.index]
+        self.index += 1
+        return result
+
+    def __getitem__(self, item):
+        person = [self.first, self.middle, self.last, self.birthday, self.phone, self.spouse, self.kids, self.home,
+                  self.work, self.number]
+        return person[item]
 
     def create_from_name_and_birthday(self, first_name, last_name, birthday):
         """
@@ -94,16 +97,9 @@ class Person(object):
         :param last_name:
         :param birthday:
         """
-        self.first = self._load_text(first_name)
-        self.last = self._load_text(last_name)
+        self.first = first_name
+        self.last = last_name
         self.birthday = birthday
-
-    @staticmethod
-    def _load_text(text):
-        if text:
-            return Text(text)
-        else:
-            return None
 
     def fill_from_file_string(self, line):
         """
@@ -111,20 +107,20 @@ class Person(object):
         :type line: str
         """
         line = line.split('$')[:-1]
-        self.first = self._load_text(line[0])
-        self.middle = self._load_text(line[1])
-        self.last = self._load_text(line[2])
+        self.first = line[0]
+        self.middle = line[1]
+        self.last = line[2]
 
         if line[3]:
             parts = line[3].split('-')
             self.birthday = Date(parts[0], parts[1], parts[2])
 
-        self.phone = self._load_text(line[4])
-        self.spouse = self._load_text(line[5])
+        self.phone = line[4]
+        self.spouse = line[5]
 
         if len(line[6]) > 0:
-            for j in range(len(line[6].split('&'))):
-                self.kids.append(Text(line[6].split('&')[j]))
+            for j in line[6].split('&'):
+                self.kids.append(j)
 
         if line[7]:
             parts = line[7].split(', ')
@@ -138,7 +134,7 @@ class Person(object):
             for i in range(len(parts)):
                 self.work.props[i] = parts[i]
 
-        self.number = self._load_text(line[9])
+        self.number = line[9]
 
     def to_file_string(self):
         """ return srt to store in file
@@ -153,10 +149,11 @@ class Person(object):
                 result.append(self.spouse.to_string(['number']))
             elif prop_field is self.kids:
                 for j in self.kids:
-                    heritage.append(j.to_string(['number']))
+                    if j:
+                        heritage.append(j.number)
                 result.append('&'.join(heritage))
             else:
-                result.append(prop_field.to_string() if prop_field else '')
+                result.append(str(prop_field) if prop_field else '')
         result.append('\n')
         return '$'.join(result)
 
@@ -176,7 +173,7 @@ class Person(object):
         if other_prop_value is None:
             return 1
 
-        return my_prop_value.compare(other_prop_value)
+        return cmp(my_prop_value, other_prop_value)
 
     def get_prop_by_name(self, prop_name):
         """
@@ -198,8 +195,8 @@ class Person(object):
         if prop_name == 'kids':
             result = []
             if self.kids:
-                for i in range(len(self.kids)):
-                    result.append(self.kids[i])
+                for i in self.kids:
+                    result.append(i)
                 return result
         if prop_name == 'home':
             return self.home
@@ -226,7 +223,9 @@ class Person(object):
 
             if print_prop_name == 'kids':
                 for kid in self.kids:
-                    result.append(kid.to_string(['first', 'last']))
+                    if kid:
+                        result.append(kid.first)
+                        result.append(kid.last)
                 continue
 
             prop_value = self.get_prop_by_name(print_prop_name)
@@ -234,58 +233,56 @@ class Person(object):
             if prop_value is None:
                 continue
 
-            result.append(prop_value.to_string())
+            result.append(str(prop_value))
         return ' '.join(result)
 
     def set_middle_name(self, name):
-        if name != 0:
-            self.middle = Text(name)
-        else:
-            self.middle = None
+        self.middle = name
 
     def set_phone(self, phone):
-        if phone != 0:
-            self.phone = Text(phone)
-        else:
-            self.phone = None
+        self.phone = phone
 
     def set_spouse(self, person):
-        if person != 0:
-            self.spouse = person
-        else:
-            self.spouse = None
+        self.spouse = person
 
     def add_kid(self, kid):
         self.kids.append(kid)
 
     def set_home(self, address):
-        if address != 0:
-            self.home = Address()
-            for i in range(len(address)):
-                self.home.props[i] = address[i]
+        self.home = Address()
+        for i in range(len(address)):
+            self.home.props[i] = address[i]
 
     def set_work(self, address):
-        if address != 0:
-            self.work = Address()
-            for i in range(len(address)):
-                self.work.props[i] = address[i]
+        self.work = Address()
+        for i in range(len(address)):
+            self.work.props[i] = address[i]
 
     def set_number(self):
-        number = self.first.to_string()[0]
+        number = self.first[0]
         if self.middle:
-            number += self.middle.to_string()[0]
-        number += self.last.to_string()[0]
+            number += self.middle[0]
+        number += self.last[0]
         number += str(self.birthday.year) + str(self.birthday.month) + str(self.birthday.day)
-        self.number = self._load_text(number)
+        self.number = number
 
-    def match(self, first, last):
-        if first == self.first.to_string() and last == self.last.to_string():
-            return True
+    def match(self, request, add_request=None):
+        person = [self.first, self.middle, self.last, self.phone]
+        if add_request:
+            for i in person:
+                if request == i:
+                    for j in person:
+                        if add_request == j:
+                            return True
+                    return False
         else:
+            for k in person:
+                if request == k:
+                    return True
             return False
 
     def match_number(self, request):
-        if self.number.to_string() == request.to_string():
+        if self.number == request:
             return True
         else:
             return False
@@ -325,24 +322,28 @@ class Book(object):
         my_compare = lambda o1, o2: o1.compare(o2, prop_name)
         self.addrbook.sort(cmp=my_compare)
 
-    def del_person(self, first, last):
-        person = self.find_person_by_name(first, last)
-        self.addrbook.remove(person)
+    def del_person(self, request, add_request=None):
+        try:
+            person = self.find_person_by_name(request, add_request)
+            self.addrbook.remove(person)
+        except Exception as e:
+            print e
 
     def print_all(self, prop_names=None):
         for person in self.addrbook:
             print person.to_string(prop_names)
 
-    def print_by_address(self, request, print_props_names=None):
+    def print_by_address(self, request):
         for person in self.addrbook:
             if person.home and person.home.match(request) is True and \
                     person.work and person.work.match(request) is True:
-                print (person.to_string(print_props_names) + ' Home & Work')
-                break
+                print (person.first + ' ' + person.last + ' ' + str(person.home) + ' ' + str(person.work) +
+                       ' Home & Work')
+                continue
             if person.home and person.home.match(request) is True:
-                print (person.to_string(print_props_names) + ' Home')
+                print (person.first + ' ' + person.last + ' ' + str(person.home) + ' Home')
             if person.work and person.work.match(request) is True:
-                print (person.to_string(print_props_names) + ' Work')
+                print (person.first + ' ' + person.last + ' ' + str(person.work) + ' Work')
 
     def find_person_by_number(self, number):
         """
@@ -359,18 +360,25 @@ class Book(object):
                 result = None
         return result
 
-    def find_person_by_name(self, first, last):
+    def find_person_by_name(self, request, add_request=None):
         """
         :param first name, last name:
         :rtype: Person
         """
+        match_counter = 0
         result = Person()
         for person in self.addrbook:
-            if person.match(first, last):
-                result = person
-                break
-            else:
-                result = None
+            if person.match(request, add_request):
+                match_counter += 1
+        if match_counter > 1:
+            raise Exception("Please, specify person")
+        else:
+            for human in self.addrbook:
+                if human.match(request, add_request):
+                    result = human
+                    break
+                else:
+                    result = None
         return result
 
 
@@ -455,11 +463,11 @@ def main():
     book = Book()
     book.load_from_file('Book.txt')
     book.sort('middle')
-    # book.del_person('Nicky', 'Devil')
+    # book.del_person('Jane', 'Doe')
     # book.print_by_address(['USA', 'New York'])
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
-    out = open('book.txt', 'wt')
-    book.save_to_file(out)
+    #out = open('book.txt', 'wt')
+    #book.save_to_file(out)
 
 
 if __name__ == '__main__':
