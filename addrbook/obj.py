@@ -34,8 +34,13 @@ class Date(object):
 
 
 class Address(object):
-    def __init__(self):
-        self.props = [None, None, None, None, None]
+    def __init__(self, country=None, city=None, street=None, building=None, apartment=None):
+        self.country = country
+        self.city = city
+        self.street = street
+        self.building = building
+        self.apartment = apartment
+        self.props = [self.country, self.city, self.street, self.building, self.apartment]
 
     def __str__(self):
         addr = []
@@ -149,8 +154,7 @@ class Person(object):
                 result.append(self.spouse.to_string(['number']))
             elif prop_field is self.kids:
                 for j in self.kids:
-                    if j:
-                        heritage.append(j.number)
+                    heritage.append(j.number)
                 result.append('&'.join(heritage))
             else:
                 result.append(str(prop_field) if prop_field else '')
@@ -223,14 +227,13 @@ class Person(object):
 
             if print_prop_name == 'kids':
                 for kid in self.kids:
-                    if kid:
-                        result.append(kid.first)
-                        result.append(kid.last)
+                    result.append(kid.first)
+                    result.append(kid.last)
                 continue
 
             prop_value = self.get_prop_by_name(print_prop_name)
 
-            if prop_value is None or prop_value is '':
+            if not prop_value:
                 continue
 
             result.append(str(prop_value))
@@ -249,14 +252,10 @@ class Person(object):
         self.kids.append(kid)
 
     def set_home(self, address):
-        self.home = Address()
-        for i in range(len(address)):
-            self.home.props[i] = address[i]
+        self.home = address
 
     def set_work(self, address):
-        self.work = Address()
-        for i in range(len(address)):
-            self.work.props[i] = address[i]
+        self.work = address
 
     def set_number(self):
         number = self.first[0]
@@ -269,23 +268,17 @@ class Person(object):
     def match(self, request, add_request=None):
         person = [self.first, self.middle, self.last, self.phone]
         if add_request:
-            for i in person:
-                if request == i:
-                    for j in person:
-                        if add_request == j:
-                            return True
-                    return False
+            if request in person and add_request in person:
+                return True
+            else:
+                return False
         else:
-            for k in person:
-                if request == k:
-                    return True
+            if request in person:
+                return True
             return False
 
     def match_number(self, request):
-        if self.number == request:
-            return True
-        else:
-            return False
+        return self.number == request
 
     def spouse_kids_fix(self, book):
         if self.spouse:
@@ -365,20 +358,13 @@ class Book(object):
         :param first name, last name:
         :rtype: Person
         """
-        match_counter = 0
-        result = Person()
+        result = None
         for person in self.addrbook:
             if person.match(request, add_request):
-                match_counter += 1
-        if match_counter > 1:
-            raise Exception("Please, specify person")
-        else:
-            for human in self.addrbook:
-                if human.match(request, add_request):
-                    result = human
-                    break
+                if result:
+                    raise Exception("Please, specify person")
                 else:
-                    result = None
+                    result = person
         return result
 
 
@@ -388,7 +374,7 @@ def creation():
     human1.create_from_name_and_birthday('John', 'Doe', Date(1970, 11, 3))
     human1.set_middle_name('Dead')
     human1.set_phone('8956')
-    human1.set_home(['USA', 'New York', '5th Ave', '86', '101'])
+    human1.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human1.set_number()
 
     human2 = Person()
@@ -397,15 +383,15 @@ def creation():
     human2.set_phone('8031')
     human2.set_spouse(human1)
     human2.set_number()
-    human2.set_home(['USA', 'New York', '5th Ave', '86', '101'])
+    human2.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
     human1.set_spouse(human2)
 
     human3 = Person()
     human3.create_from_name_and_birthday('Ivan', 'Morozoff', Date(1950, 8, 4))
     human3.set_middle_name('Russian')
     human3.set_phone('9012')
-    human3.set_home(['Russia', 'Moscow', 'Arbat St', '86', '101'])
-    human3.set_work(['Russia', 'Moscow', 'Novinsky Blvd', '22', '19'])
+    human3.set_home(Address('Russia', 'Moscow', 'Arbat St', '86', '101'))
+    human3.set_work(Address('Russia', 'Moscow', 'Novinsky Blvd', '22', '19'))
     human3.set_number()
     book.append(human3)
 
@@ -413,8 +399,8 @@ def creation():
     human4.create_from_name_and_birthday('Nicky', 'Devil', Date(1666, 13, 13))
     human4.set_middle_name('Junior')
     human4.set_phone('1488')
-    human4.set_home(['USA', 'New York', '5th Ave', '86', '101'])
-    human4.set_work(['USA', 'New York', '10th St', '120', '401'])
+    human4.set_home(Address('USA', 'New York', '5th Ave', '86', '101'))
+    human4.set_work(Address('USA', 'New York', '10th St', '120', '401'))
     human4.set_number()
     human1.add_kid(human4)
     human2.add_kid(human4)
@@ -426,14 +412,14 @@ def creation():
     human5.create_from_name_and_birthday('John', 'Snow', Date(1673, 05, 12))
     human5.set_middle_name('Bastard')
     human5.set_phone('4183')
-    human5.set_home(['Westeros', 'The Wall', 'Black Castle', '13', '666'])
+    human5.set_home(Address('Westeros', 'The Wall', 'Black Castle', '13', '666'))
     human5.set_number()
 
     human6 = Person()
     human6.create_from_name_and_birthday('Ygritte', 'Wild', Date(1676, 11, 28))
     human6.set_middle_name('Red')
     human6.set_phone('7913')
-    human6.set_home(['Westeros', 'North', 'Wastelands', '123', '45'])
+    human6.set_home(Address('Westeros', 'North', 'Wastelands', '123', '45'))
     human6.set_spouse(human5)
     human6.set_number()
     human5.set_spouse(human6)
@@ -442,8 +428,8 @@ def creation():
     human7.create_from_name_and_birthday('Olga', 'Petrova', Date(1754, 9, 14))
     human7.set_middle_name('Soviet')
     human7.set_phone('2462')
-    human7.set_home(['Russia', 'Ekaterinburg', 'Lenina St', '103', '81'])
-    human7.set_work(['Russia', 'Ekaterinburg', 'Mira St', '26', '11'])
+    human7.set_home(Address('Russia', 'Ekaterinburg', 'Lenina St', '103', '81'))
+    human7.set_work(Address('Russia', 'Ekaterinburg', 'Mira St', '26', '11'))
     human7.set_number()
     human5.add_kid(human3)
     human5.add_kid(human7)
@@ -463,7 +449,7 @@ def main():
     book = Book()
     book.load_from_file('Book.txt')
     book.sort('middle')
-    # book.del_person('Jane', 'Doe')
+    # book.del_person('John', 'Doe')
     # book.print_by_address(['USA', 'New York'])
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
