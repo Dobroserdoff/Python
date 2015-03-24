@@ -268,14 +268,9 @@ class Person(object):
     def match(self, request, add_request=None):
         person = [self.first, self.middle, self.last, self.phone]
         if add_request:
-            if request in person and add_request in person:
-                return True
-            else:
-                return False
+            return request in person and add_request in person
         else:
-            if request in person:
-                return True
-            return False
+            return request in person
 
     def match_number(self, request):
         return self.number == request

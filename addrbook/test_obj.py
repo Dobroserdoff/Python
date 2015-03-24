@@ -164,5 +164,8 @@ class TestBook(TestCase):
 
         book = obj.Book()
         book.load_from_file('Book.txt')
-        other_human = book.find_person_by_name(human.first, human.last)
+        other_human = book.find_person_by_name('John', 'Snow')
         self.assertEqual(human.to_string(), other_human.to_string(['first', 'last', 'birthday']))
+
+        second_other_human = book.find_person_by_name('John', 'Doe')
+        self.assertNotEqual(human.to_string(), second_other_human.to_string(['first', 'last', 'birthday']))
