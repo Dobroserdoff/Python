@@ -1,19 +1,49 @@
-import sys
 # -*- coding: UTF-8 -*-
 
 
 def main():
     equation = str(raw_input('Please input an equation '))
     variables = var_count(equation)
-    values = ['0', '1', '1', '1', '0']
-    result = brackets(equation, variables, values)
-    print (result)
+    str_var = ''
+    for i in variables[2:]:
+        str_var += i + ' '
+    result = str_var + equation + '\n'
+    all_values = values_change(variables[2:])
+    for values in all_values:
+        values = ['0', '1'] + values
+        final_value = brackets(equation, variables, values)
+        result += out_print(final_value, values)
+    print result
+
+
+def values_change(variables):
+    if len(variables) == 1:
+        return [['0'], ['1']]
+    else:
+        result = []
+        short_items = values_change(variables[:-1])
+        for short_item in short_items:  # ['1', '0']
+            long_item_1 = short_item + ['0']  # ['1', '0'] + ['0'] = ['1', '0', '0']
+            long_item_2 = short_item + ['1']  # ['1', '0'] + ['1'] = ['1', '0', '1']
+            result.append(long_item_1)
+            result.append(long_item_2)
+        return result
+
+
+def out_print(final_value, values):
+    str_out = ''
+    for j in values[2:]:
+        str_out += j + ' '
+    result = str_out + final_value + '\n'
+    return result
 
 
 def var_count(equation):
     variables = ['0', '1']
     elements = equation.split()
     for i in elements:
+        i = i.replace('(', '')
+        i = i.replace(')', '')
         if len(i) == 1 and i not in variables:
             variables.append(i)
         elif len(i) == 2 and i[0] == '(' and i[1] not in variables:
@@ -24,17 +54,17 @@ def var_count(equation):
 
 
 def brackets(equation, variables, values):
-    limit_expression = lowest_brackets(equation,variables,values, counter=0)
+    limit_expression = lowest_brackets(equation, variables, values, counter=0)
     limit = limit_expression[0]
     expression = limit_expression[1]
     while limit > 0:
-        result = lowest_brackets(expression, variables, values, 0, limit)
+        result = lowest_brackets(expression, variables, values, 0)
         limit = result[0]
         expression = result[1]
     return expression
 
 
-def lowest_brackets(equation, variables, values, counter, limit=None):
+def lowest_brackets(equation, variables, values, counter):
     pair_brackets = [0, 0]
     if '(' in equation:
         for i in range(len(equation)):
@@ -43,10 +73,15 @@ def lowest_brackets(equation, variables, values, counter, limit=None):
                 counter += 1
             elif equation[i] == ')':
                 pair_brackets[1] = i
-                final = lowest_brackets(equation[pair_brackets[0]+1:pair_brackets[1]], variables,values, counter)
-                new_eq = equation[:pair_brackets[0]] + final[1] + equation[pair_brackets[1]+1:]
+                final = lowest_brackets(equation[pair_brackets[0]+1:pair_brackets[1]], variables, values, counter)
+                if equation[pair_brackets[0]-4:pair_brackets[0]-1] == 'not':
+                    if final[1] == '0':
+                        new_eq = equation[:pair_brackets[0]-4] + '1' + equation[pair_brackets[1]+1:]
+                    else:
+                        new_eq = equation[:pair_brackets[0]-4] + '0' + equation[pair_brackets[1]+1:]
+                else:
+                    new_eq = equation[:pair_brackets[0]] + final[1] + equation[pair_brackets[1]+1:]
                 final[1] = new_eq
-                print final
                 return final
     else:
         result = [counter, all_operators(equation, variables, values)]
@@ -91,7 +126,7 @@ def and_operator(equation, variables, values):
                 second = '1'
         else:
             second = values[exp2_position]
-        if first and second == '1':
+        if first == '1' and second == '1':
             value = '1'
         else:
             value = '0'
@@ -132,7 +167,7 @@ def or_operator(and_result, variables, values):
                 second = '1'
         else:
             second = values[exp2_position]
-        if first and second == '0':
+        if first == '0' and second == '0':
             value = '0'
         else:
             value = '1'
@@ -225,5 +260,4 @@ def equal_operator(then_result, variables, values):
         return then_result
 
 
-brackets('((a and b) and not (c equal not b)) then not (d or b)', ['0', '1', 'a', 'b', 'c', 'd'], ['0', '1', '0', '0', '1', '1'])
-
+main()
