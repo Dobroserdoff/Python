@@ -5,15 +5,41 @@ def main():
     equation = str(raw_input('Please input an equation '))
     variables = var_count(equation)
     str_var = ''
+    result_html = []
     for i in variables[2:]:
         str_var += i + ' '
+        result_html.append(i)
     result = str_var + equation + '\n'
+    result_html.append(equation)
+    result_html.append('$')
     all_values = values_change(variables[2:])
     for values in all_values:
         values = ['0', '1'] + values
         final_value = brackets(equation, variables, values)
         result += out_print(final_value, values)
+        for i in out_print(final_value, values).split():
+            result_html.append(i)
+        result_html.append('$')
+    create_html(result_html)
     print result
+
+
+def create_html(inf):
+    out = open('logicLinearOutput.html', 'w')
+    output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
+    output += '\t' + '<meta charset="UTF-8">' + '\n'+ '\t' + '<title>Logix</title>' + '\n' + '</head>' + '\n'
+    output += '<body>' + '\n' + '\t' + '<h1 align="center">Table Of Results</h1>' + '\n'
+    output += '\t\t' + '<table width="500" cellspacing="5" cellpadding="15" border="3" align="center">' + '\n'
+    output += '\t\t\t' + '<tr>' + '\n'
+    for i in range(len(inf)):
+        if inf[i] != '$':
+            output += '\t\t\t\t' + '<td align="center">' + inf[i] + '</td>' + '\n'
+        elif i+1 == len(inf):
+            output += '\t\t\t' + '</tr>' + '\n'
+        else:
+            output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
+    output += '\t\t' + '</table>' + '\n' + '</body>' + '\n' + '</html>'
+    out.write(output)
 
 
 def values_change(variables):
