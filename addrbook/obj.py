@@ -1,3 +1,4 @@
+import os
 # -*- coding: utf-8 -*-
 class Date(object):
     def __init__(self, year, month, day):
@@ -288,6 +289,21 @@ class Book(object):
     def __init__(self):
         self.addrbook = []
 
+    def __iter__(self):
+        return self
+
+    def next(self):
+        self.addrbook = []
+        if self.index == len(self.addrbook):
+            raise StopIteration()
+        result = self.addrbook[self.index]
+        self.index += 1
+        return result
+
+    def __getitem__(self, item):
+        self.addrbook = []
+        return self.addrbook[item]
+
     def set_numbers(self):
         for i in self.addrbook:
             i.set_number()
@@ -449,8 +465,65 @@ def main():
     book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
     book.save_to_file(out)
+    create_index(book)
 
 
-if __name__ == '__main__':
-    # creation()
-    main()
+def create_index(book):
+    book.sort('first')
+    if not os.path.exists('HTML'):
+        os.makedirs('HTML')
+    index_page = open('HTML/index_page.html', 'w')
+    output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
+    output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>Address Book</title>' + '\n'
+    output += '\t' + '<style>' + '\n'
+    output += '\t\t' + 'ul {list-style-type: none;}' + '\n' + '\t' + '</style>' + '\n' + '</head>' + '\n'
+    output += '<body>' + '\n' + '\t' + '<h1 align="center">Address Book</h1>' + '\n'
+    output += '\t\t' + '<ul align="center">' + '\n'
+    for person in book.addrbook:
+        personal_link = personal_html(person)
+        output += '\t\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + '</a>' + '</li>' + '\n'
+    output += '\t\t' + '</ul>' + '\n' + '</body>' + '\n' + '</html>'
+    index_page.write(output)
+
+
+def personal_html(person):
+    if not os.path.exists('HTML/Personal'):
+        os.makedirs('HTML/Personal')
+    name = person.to_string(['first', 'last'])
+    private_html = 'HTML/personal/' + person.to_string(['first']) + '_' + person.to_string(['last']) + '.html'
+    personal_page = open(private_html, 'w')
+    output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
+    output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>' + name + '</title>' + '\n' + '</head>' + '\n'
+    output += '<body>' + '\n' + '\t' + '<h1 align="center">' + name + '</h1>' + '\n'
+    output += '\t\t' + '<table align="center">' + '\n' + '\t\t\t' + '<tr>' + '\n'
+    output += '\t\t\t\t' + '<td>Name:</td>' + '\n'
+    output += '\t\t\t\t' + '<td>' + person.to_string(['first']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Second Name:</td>' + '\n'
+    output += '\t\t\t\t' + '<td>' + person.to_string(['middle']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Last Name:</td>' + '\n'
+    output += '\t\t\t\t' + '<td>' + person.to_string(['last']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Date Of Birth:</td>' + '\n'
+    output += '\t\t\t\t' + '<td>' + person.to_string(['birthday']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Phone Number:</td>' + '\n'
+    output += '\t\t\t\t' + '<td>' + person.to_string(['phone']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    if person.spouse:
+        output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Spouse:</td>' + '\n'
+        output += '\t\t\t\t' + '<td>' + person.spouse.to_string(['first', 'last']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    if person.kids:
+        for kid in person.kids:
+            output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Child:</td>' + '\n'
+            output += '\t\t\t\t' + '<td>' + kid.first + ' ' + kid.last + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Home Address:</td>' + '\n'
+    output += '\t\t\t\t' + '<td>' + person.to_string(['home']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    if person.work:
+        output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Work Address:</td>' + '\n'
+        output += '\t\t\t\t' + '<td>' + person.to_string(['work']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t' + '</table>' + '\n' + '\t' + '<center><a href="../index_page.html">Main Page</a></center>' + '\n'
+    output += '</body>' + '\n' + '</html>'
+    personal_page.write(output)
+    return [name, private_html[5:]]
+
+
+
+#creation()
+main()
