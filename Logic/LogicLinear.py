@@ -118,13 +118,7 @@ def lowest_brackets(simple, counter):
             elif simple[i] == ')':
                 pair_brackets[1] = i
                 final = lowest_brackets(simple[pair_brackets[0]+1:pair_brackets[1]], counter)
-                if simple[pair_brackets[0]-4:pair_brackets[0]-1] == 'not':
-                    if final[1] == '0':
-                        new_eq = simple[:pair_brackets[0]-4] + '1' + simple[pair_brackets[1]+1:]
-                    else:
-                        new_eq = simple[:pair_brackets[0]-4] + '0' + simple[pair_brackets[1]+1:]
-                else:
-                    new_eq = simple[:pair_brackets[0]] + final[1] + simple[pair_brackets[1]+1:]
+                new_eq = simple[:pair_brackets[0]] + final[1] + simple[pair_brackets[1]+1:]
                 final[1] = new_eq
                 return final
     else:
