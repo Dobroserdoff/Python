@@ -1,5 +1,7 @@
 import os
 # -*- coding: utf-8 -*-
+
+
 class Date(object):
     def __init__(self, year, month, day):
         self.year = year
@@ -288,6 +290,7 @@ class Person(object):
 class Book(object):
     def __init__(self):
         self.addrbook = []
+        self.index = 0
 
     def __iter__(self):
         return self
@@ -476,12 +479,13 @@ def create_index(book):
     output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
     output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>Address Book</title>' + '\n'
     output += '\t' + '<style>' + '\n'
-    output += '\t\t' + 'ul {list-style-type: none;}' + '\n' + '\t' + '</style>' + '\n' + '</head>' + '\n'
+    output += '\t\t' + 'ul {list-style-type: none; text-align:center;}' + '\n' + '\t' + '</style>' + '\n' + '</head>' + '\n'
     output += '<body>' + '\n' + '\t' + '<h1 align="center">Address Book</h1>' + '\n'
-    output += '\t\t' + '<ul align="center">' + '\n'
+    output += '\t\t' + '<ul>' + '\n'
     for person in book.addrbook:
         personal_link = personal_html(person)
-        output += '\t\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + '</a>' + '</li>' + '\n'
+        output += '\t\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + \
+                  '</a>' + '</li>' + '\n'
     output += '\t\t' + '</ul>' + '\n' + '</body>' + '\n' + '</html>'
     index_page.write(output)
 
@@ -508,11 +512,14 @@ def personal_html(person):
     output += '\t\t\t\t' + '<td>' + person.to_string(['phone']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
     if person.spouse:
         output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Spouse:</td>' + '\n'
-        output += '\t\t\t\t' + '<td>' + person.spouse.to_string(['first', 'last']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+        output += '\t\t\t\t' + '<td>' + '<a href="' + person.spouse.to_string(['first']) + '_' + \
+                  person.spouse.to_string(['last']) + '.html">' + person.spouse.to_string(['first', 'last']) + \
+                  '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
     if person.kids:
         for kid in person.kids:
             output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Child:</td>' + '\n'
-            output += '\t\t\t\t' + '<td>' + kid.first + ' ' + kid.last + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+            output += '\t\t\t\t' + '<td>' + '<a href="' + kid.first + '_' + kid.last + '.html">' + kid.first + ' ' + \
+                      kid.last + '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
     output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Home Address:</td>' + '\n'
     output += '\t\t\t\t' + '<td>' + person.to_string(['home']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
     if person.work:
