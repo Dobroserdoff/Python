@@ -1,3 +1,5 @@
+import socket
+import sys
 # -*- coding: UTF-8 -*-
 
 
