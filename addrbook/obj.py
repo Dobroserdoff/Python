@@ -499,38 +499,41 @@ def personal_html(person):
     output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
     output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>' + name + '</title>' + '\n' + '</head>' + '\n'
     output += '<body>' + '\n' + '\t' + '<h1 align="center">' + name + '</h1>' + '\n'
-    output += '\t\t' + '<table align="center">' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td>Name:</td>' + '\n'
-    output += '\t\t\t\t' + '<td>' + person.to_string(['first']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Second Name:</td>' + '\n'
-    output += '\t\t\t\t' + '<td>' + person.to_string(['middle']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Last Name:</td>' + '\n'
-    output += '\t\t\t\t' + '<td>' + person.to_string(['last']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Date Of Birth:</td>' + '\n'
-    output += '\t\t\t\t' + '<td>' + person.to_string(['birthday']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Phone Number:</td>' + '\n'
-    output += '\t\t\t\t' + '<td>' + person.to_string(['phone']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    if person.spouse:
-        output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Spouse:</td>' + '\n'
-        output += '\t\t\t\t' + '<td>' + '<a href="' + person.spouse.to_string(['first']) + '_' + \
-                  person.spouse.to_string(['last']) + '.html">' + person.spouse.to_string(['first', 'last']) + \
-                  '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    if person.kids:
-        for kid in person.kids:
-            output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Child:</td>' + '\n'
-            output += '\t\t\t\t' + '<td>' + '<a href="' + kid.first + '_' + kid.last + '.html">' + kid.first + ' ' + \
-                      kid.last + '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Home Address:</td>' + '\n'
-    output += '\t\t\t\t' + '<td>' + person.to_string(['home']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    if person.work:
-        output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>Work Address:</td>' + '\n'
-        output += '\t\t\t\t' + '<td>' + person.to_string(['work']) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    output += '\t\t' + '<table align="center">' + '\n'
+    output += create_personal(person)
     output += '\t\t' + '</table>' + '\n' + '\t' + '<center><a href="../index_page.html">Main Page</a></center>' + '\n'
     output += '</body>' + '\n' + '</html>'
     personal_page.write(output)
     return [name, private_html[5:]]
 
 
+def create_personal(person):
+    result = ''
+    set_order = ['Name:', 'Second Name:', 'Last Name:', 'Date of Birth:', 'Phone Number:', 'Spouse:', 'Children:',
+                 'Home Address:', 'Work Address:']
+    for i in range(len(set_order)):
+        if person[i]:
+            result += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>' + set_order[i] + '</td>' + '\n'
+            if i == 5:
+                result += '\t\t\t\t' + '<td>' + '<a href="' + person.spouse.to_string(['first']) + '_' + \
+                          person.spouse.to_string(['last']) + '.html">' + person.spouse.to_string(['first', 'last']) + \
+                          '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+                continue
+            if i == 6:
+                result += '\t\t\t\t' + '<td>'
+                for kid in person.kids:
+                    if kid == person.kids[-1]:
+                        result += '<a href="' + kid.first + '_' + kid.last + '.html">' + kid.first + ' ' + \
+                                  kid.last + '</a>'
+                    else:
+                        result += '<a href="' + kid.first + '_' + kid.last + '.html">' + kid.first + ' ' + \
+                                  kid.last + '</a>' + '<br />'
+                result += '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+                continue
+            result += '\t\t\t\t' + '<td>' + str(person[i]) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
+    return result
+
 
 #creation()
-main()
+if __name__ == '__main__':
+    main()
