@@ -3,8 +3,8 @@ import sys
 # -*- coding: UTF-8 -*-
 
 
-def main():
-    equation = str(raw_input('Please input an equation '))
+def main(equation):
+    #equation = str(raw_input('Please input an equation '))
     variables = var_count(equation)
     short = simplify(equation)
     str_var = ''
@@ -23,8 +23,26 @@ def main():
         for i in out_print(final_value, values).split():
             result_html.append(i)
         result_html.append('$')
-    create_html(result_html)
+    create_html_file(result_html)
     print result
+
+
+def html_request(equation):
+    variables = var_count(equation)
+    short = simplify(equation)
+    result_html = []
+    for i in variables:
+        result_html.append(i)
+    result_html.append(equation)
+    result_html.append('$')
+    all_values = values_change(variables)
+    for values in all_values:
+        simple = var_to_value(short, variables, values)
+        final_value = brackets(simple)
+        for i in out_print(final_value, values).split():
+            result_html.append(i)
+        result_html.append('$')
+    return result_html
 
 
 def simplify(equation):
@@ -44,8 +62,13 @@ def var_to_value(short, variables, values):
     return result
 
 
-def create_html(inf):
+def create_html_file(inf=None):
     out = open('logicLinearOutput.html', 'w')
+    result = create_html(inf)
+    out.write(result)
+
+
+def create_html(inf):
     output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
     output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>Logix</title>' + '\n' + '</head>' + '\n'
     output += '<body>' + '\n' + '\t' + '<h1 align="center">Table Of Results</h1>' + '\n'
@@ -59,7 +82,7 @@ def create_html(inf):
         else:
             output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
     output += '\t\t' + '</table>' + '\n' + '</body>' + '\n' + '</html>'
-    out.write(output)
+    return output
 
 
 def values_change(variables):
@@ -176,4 +199,5 @@ def equal_operator(then_result):
         result = then_result
     return result
 
-main()
+if __name__ == '__main__':
+    main(equation)
