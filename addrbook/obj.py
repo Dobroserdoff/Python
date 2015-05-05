@@ -1,4 +1,5 @@
 import os
+import socket
 # -*- coding: utf-8 -*-
 
 
@@ -465,7 +466,7 @@ def main():
     book.sort('middle')
     # book.del_person('John', 'Doe')
     # book.print_by_address(['USA', 'New York'])
-    book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
+    # book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
     book.save_to_file(out)
     create_index(book)
@@ -475,19 +476,130 @@ def create_index(book):
     book.sort('first')
     if not os.path.exists('HTML'):
         os.makedirs('HTML')
-    index_page = open('HTML/index_page.html', 'w')
-    output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
-    output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>Address Book</title>' + '\n'
-    output += '\t' + '<style>' + '\n'
-    output += '\t\t' + 'ul {list-style-type: none; text-align:center;}' + '\n' + '\t' + '</style>' + '\n' + '</head>' + '\n'
-    output += '<body>' + '\n' + '\t' + '<h1 align="center">Address Book</h1>' + '\n'
-    output += '\t\t' + '<ul>' + '\n'
-    for person in book.addrbook:
-        personal_link = personal_html(person)
-        output += '\t\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + \
-                  '</a>' + '</li>' + '\n'
-    output += '\t\t' + '</ul>' + '\n' + '</body>' + '\n' + '</html>'
-    index_page.write(output)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_address = ('localhost', 33322)
+    sock.bind(server_address)
+    sock.listen(5)
+    while True:
+        connection, client_address = sock.accept()
+        request = connection.recv(1024)
+        print request
+        if request[:3] == 'GET':
+            link = request.split()[1]
+            print link
+            if link == '/favicon.ico':
+                connection.sendall('HTTP/1.1 404 Page Not Found')
+            if 'add_person' in link:
+                create_add(book, sock)
+            output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
+            <html>
+            <head lang="en">
+                <meta charset="UTF-8">
+                <style>
+                    ul {list-style-type: none; text-align:center;}
+                </style>
+                <title>Address Book</title>
+            </head>
+            <body>
+                <h1 align="center">Address Book</h1>
+                <ul>\r\n"""
+            for person in book.addrbook:
+                personal_link = personal_html(person)
+                output += '\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + \
+                          '</a>' + '</li>' + '\n'
+            output += """
+                </ul>
+                    <table align="center">
+                        <tr>
+                            <td>
+                                <form action="http://localhost:33322" method="get">
+                                   <button name="add_person">Add Person</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </table>
+            </body>
+            </html>"""
+            connection.sendall(output)
+            connection.close()
+
+
+def create_add(book, sock):
+    while True:
+        connection, client_address = sock.accept()
+        request = connection.recv(1024)
+        if request[:3] == 'GET':
+            link = request.split()[1]
+            if link == '/favicon.ico':
+                connection.sendall('HTTP/1.1 404 Page Not Found')
+            inf = link.split('&')
+            if len(inf) == 7:
+                date_format = inf[3][9:].split('%2C+')
+                human = Person()
+                human.create_from_name_and_birthday(inf[0][8:], inf[2][5:],
+                                                    Date(int(date_format[0]), int(date_format[1]), int(date_format[2])))
+                if len(inf[1]) > 7:
+                    human.set_middle_name(inf[1][8:])
+                if len(inf[4]) > 6:
+                    human.set_phone(inf[4][7:])
+                if len(inf[5]) > 5:
+                    home_address = inf[5][5:].split('%2C+')
+                    human.set_home(', '.join(home_address))
+                if len(inf[6]) > 5:
+                    work_address = inf[6][5:].split('%2C+')
+                    human.set_work(', '.join(work_address))
+                book.addrbook.append(human)
+                return book
+        output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
+        <html>
+        <head lang="en">
+            <meta charset="UTF-8">
+            <style>
+                sup {color: red}
+            </style>
+            <title>Add Person</title>
+        </head>
+        <body>
+            <h1 align="center">Add Person</h1>
+            <form action="http://localhost:33322" method="get" align="center">
+                <table align="center">
+                    <tr>
+                        <td align="left">First Name:<sup>*</sup></td>
+                        <td><input type="text" name="first" required size="40" maxlength="50" align="center" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left">Second Name:</td>
+                        <td><input type="text" name="middle"  size="40" maxlength="50" align="center" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left">Last Name:<sup>*</sup></td>
+                        <td><input type="text" name="last" required size="40" maxlength="50" align="center" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left">Date of Birth:<sup>*</sup></td>
+                        <td><input type="text" name="birthday" required size="40" maxlength="50" align="center" placeholder="YYYY, MM, DD" pattern="\d{4}, \d{1,2}, \d{1,2}" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left">Phone Number:</td>
+                        <td><input type="text" name="phone"  size="40" maxlength="50" align="center" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left">Home Address:</td>
+                        <td><input type="text" name="home"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment" /></td>
+                    </tr>
+                    <tr>
+                        <td align="left">Work Address:</td>
+                        <td><input type="text" name="work"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment"/></td>
+                    </tr>
+                </table>
+                <br />
+                <input type="submit" value="confirm" />
+            </form>
+            <p align="center">Fields marked as <sup>*</sup> are obligatory to fill</p>
+        </body>
+        </html>"""
+        connection.sendall(output)
+        connection.close()
 
 
 def personal_html(person):
@@ -536,4 +648,4 @@ def create_personal(person):
 
 #creation()
 if __name__ == '__main__':
-    main()
+   main()
