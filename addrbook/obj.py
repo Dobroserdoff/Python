@@ -491,6 +491,8 @@ def create_index(book):
                 connection.sendall('HTTP/1.1 404 Page Not Found')
             if 'add_person' in link:
                 create_add(book, sock)
+            if 'del_person' in link:
+                create_del(book, sock)
             output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
             <html>
             <head lang="en">
@@ -514,6 +516,11 @@ def create_index(book):
                             <td>
                                 <form action="http://localhost:33322" method="get">
                                    <button name="add_person">Add Person</button>
+                                </form>
+                            </td>
+                            <td>
+                                <form action="http://localhost:33322" method="get">
+                                   <button name="del_person">Delete Person</button>
                                 </form>
                             </td>
                         </tr>
@@ -561,7 +568,7 @@ def create_add(book, sock):
         </head>
         <body>
             <h1 align="center">Add Person</h1>
-            <form action="http://localhost:33322" method="get" align="center">
+            <form action="http://localhost:33322" method="get">
                 <table align="center">
                     <tr>
                         <td align="left">First Name:<sup>*</sup></td>
@@ -593,11 +600,61 @@ def create_add(book, sock):
                     </tr>
                 </table>
                 <br />
-                <input type="submit" value="confirm" />
+                <center><input type="submit" value="confirm" /></center>
             </form>
             <p align="center">Fields marked as <sup>*</sup> are obligatory to fill</p>
         </body>
         </html>"""
+        connection.sendall(output)
+        connection.close()
+
+
+def create_del(book, sock):
+    while True:
+        connection, client_address = sock.accept()
+        request = connection.recv(1024)
+        if request[:3] == 'GET':
+            link = request.split()[1]
+            if link == '/favicon.ico':
+                connection.sendall('HTTP/1.1 404 Page Not Found')
+            inf = link.split('&')
+            print inf
+            if inf[0][-2:] == 'on':
+                for i in inf:
+                    to_delete = i.split('_')
+                    print to_delete
+                    book.del_person(to_delete[-2],to_delete[-1][:-3])
+                return book
+        output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
+            <html>
+            <head lang="en">
+                <meta charset="UTF-8">
+                <style>
+                    ul {list-style-type: none; text-align:left;}
+                </style>
+                <title>Delete Person</title>
+            </head>
+            <body>
+                <h1 align="center">Delete Person</h1>
+                <form action="http://localhost:33322" method="get">
+                    <table align="center">
+                        <tr>
+                            <td>
+                                <ul>\r\n"""
+        for person in book.addrbook:
+            output += '\t\t\t\t\t' + '<li>' + '<input type="checkbox" id="' + person.first[0] + person.last[0] + \
+                      '" name="del_' + person.first + '_' + person.last + '" /><label for="' + person.first[0] + \
+                      person.last[0] + '">' + person.first + ' ' + person.last + '</label>' + '</li>' + '\n'
+        output += """
+                                </ul>
+                                <center><input type="submit" value="conform" /></center>
+                            </td>
+                        <tr>
+                    </table>
+                </form>
+                <p align="center">Please, select one or more person you want to delete</p>
+            </body>
+            </html>"""
         connection.sendall(output)
         connection.close()
 
