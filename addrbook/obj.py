@@ -1,4 +1,3 @@
-import os
 import socket
 # -*- coding: utf-8 -*-
 
@@ -469,31 +468,26 @@ def main():
     # book.print_all(['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work'])
     out = open('book.txt', 'wt')
     book.save_to_file(out)
-    create_index(book)
+    create_socket(book)
 
 
-def create_index(book):
+def create_socket(book):
     book.sort('first')
-    if not os.path.exists('HTML'):
-        os.makedirs('HTML')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_address = ('localhost', 33322)
     sock.bind(server_address)
     sock.listen(5)
-    while True:
-        connection, client_address = sock.accept()
-        request = connection.recv(1024)
-        print request
-        if request[:3] == 'GET':
-            link = request.split()[1]
-            print link
-            if link == '/favicon.ico':
-                connection.sendall('HTTP/1.1 404 Page Not Found')
-            if 'add_person' in link:
-                create_add(book, sock)
-            if 'del_person' in link:
-                create_del(book, sock)
-            output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
+    connection, client_address = sock.accept()
+    request = connection.recv(1024)
+    if request[:3] == 'GET':
+        link = request.split()[1]
+        if link == '/favicon.ico':
+            connection.sendall('HTTP/1.1 404 Page Not Found')
+        create_index(book, sock, connection)
+
+
+def create_index(book, sock, connection):
+    output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
             <html>
             <head lang="en">
                 <meta charset="UTF-8">
@@ -505,59 +499,49 @@ def create_index(book):
             <body>
                 <h1 align="center">Address Book</h1>
                 <ul>\r\n"""
-            for person in book.addrbook:
-                personal_link = personal_html(person)
-                output += '\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + \
-                          '</a>' + '</li>' + '\n'
-            output += """
-                </ul>
-                    <table align="center">
-                        <tr>
-                            <td>
-                                <form action="http://localhost:33322" method="get">
-                                   <button name="add_person">Add Person</button>
-                                </form>
-                            </td>
-                            <td>
-                                <form action="http://localhost:33322" method="get">
-                                   <button name="del_person">Delete Person</button>
-                                </form>
-                            </td>
-                        </tr>
-                    </table>
-            </body>
-            </html>"""
-            connection.sendall(output)
-            connection.close()
-
-
-def create_add(book, sock):
+    for person in book.addrbook:
+        personal_link = get_personal_link(person)
+        output += '\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + \
+                  '</a>' + '</li>' + '\n'
+    output += """
+        </ul>
+            <table align="center">
+                <tr>
+                    <td>
+                        <form action="http://localhost:33322" method="get">
+                           <button name="add_person">Add Person</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form action="http://localhost:33322" method="get">
+                           <button name="del_person">Delete Person</button>
+                        </form>
+                    </td>
+                </tr>
+            </table>
+    </body>
+    </html>"""
+    connection.sendall(output)
     while True:
-        connection, client_address = sock.accept()
-        request = connection.recv(1024)
+        conn, client_addr = sock.accept()
+        request = conn.recv(1024)
         if request[:3] == 'GET':
             link = request.split()[1]
-            if link == '/favicon.ico':
-                connection.sendall('HTTP/1.1 404 Page Not Found')
-            inf = link.split('&')
-            if len(inf) == 7:
-                date_format = inf[3][9:].split('%2C+')
-                human = Person()
-                human.create_from_name_and_birthday(inf[0][8:], inf[2][5:],
-                                                    Date(int(date_format[0]), int(date_format[1]), int(date_format[2])))
-                if len(inf[1]) > 7:
-                    human.set_middle_name(inf[1][8:])
-                if len(inf[4]) > 6:
-                    human.set_phone(inf[4][7:])
-                if len(inf[5]) > 5:
-                    home_address = inf[5][5:].split('%2C+')
-                    human.set_home(', '.join(home_address))
-                if len(inf[6]) > 5:
-                    work_address = inf[6][5:].split('%2C+')
-                    human.set_work(', '.join(work_address))
-                book.addrbook.append(human)
-                return book
-        output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
+            if 'add_person' in link:
+                create_add(book, sock, conn)
+            if 'del_person' in link:
+                create_del(book, sock, conn)
+            if '/personal/' in link:
+                name = []
+                name_temp = link.split('/')[-1].split('_')
+                name.append(name_temp[0])
+                name.append(name_temp[1][:-5])
+                human = book.find_person_by_name(name[0], name[1])
+                personal_html(book, human, sock, conn)
+
+
+def create_add(book, sock, connection):
+    output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
         <html>
         <head lang="en">
             <meta charset="UTF-8">
@@ -598,34 +582,45 @@ def create_add(book, sock):
                         <td align="left">Work Address:</td>
                         <td><input type="text" name="work"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment"/></td>
                     </tr>
+                    <tr>
+                        <td align="right"><input type="submit" value="Confirm" /></form></td>
+                        <td align="left"><form action="http://localhost:33322" method="get"><button name="cancel">Cancel</button></center></td>
+                    </tr>
                 </table>
-                <br />
-                <center><input type="submit" value="confirm" /></center>
-            </form>
+
             <p align="center">Fields marked as <sup>*</sup> are obligatory to fill</p>
         </body>
         </html>"""
-        connection.sendall(output)
-        connection.close()
-
-
-def create_del(book, sock):
+    connection.sendall(output)
     while True:
-        connection, client_address = sock.accept()
-        request = connection.recv(1024)
+        conn, client_addr = sock.accept()
+        request = conn.recv(1024)
         if request[:3] == 'GET':
             link = request.split()[1]
-            if link == '/favicon.ico':
-                connection.sendall('HTTP/1.1 404 Page Not Found')
+            if 'cancel' in link:
+                create_index(book, sock, conn)
             inf = link.split('&')
-            print inf
-            if inf[0][-2:] == 'on':
-                for i in inf:
-                    to_delete = i.split('_')
-                    print to_delete
-                    book.del_person(to_delete[-2],to_delete[-1][:-3])
-                return book
-        output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
+            if len(inf) == 7:
+                date_format = inf[3][9:].split('%2C+')
+                human = Person()
+                human.create_from_name_and_birthday(inf[0][8:], inf[2][5:],
+                                                    Date(int(date_format[0]), int(date_format[1]), int(date_format[2])))
+                if len(inf[1]) > 7:
+                    human.set_middle_name(inf[1][8:])
+                if len(inf[4]) > 6:
+                    human.set_phone(inf[4][7:])
+                if len(inf[5]) > 5:
+                    home_address = inf[5][5:].split('%2C+')
+                    human.set_home(', '.join(home_address))
+                if len(inf[6]) > 5:
+                    work_address = inf[6][5:].split('%2C+')
+                    human.set_work(', '.join(work_address))
+                book.addrbook.append(human)
+                create_index(book, sock, conn)
+
+
+def create_del(book, sock, connection):
+    output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
             <html>
             <head lang="en">
                 <meta charset="UTF-8">
@@ -641,39 +636,66 @@ def create_del(book, sock):
                         <tr>
                             <td>
                                 <ul>\r\n"""
-        for person in book.addrbook:
-            output += '\t\t\t\t\t' + '<li>' + '<input type="checkbox" id="' + person.first[0] + person.last[0] + \
-                      '" name="del_' + person.first + '_' + person.last + '" /><label for="' + person.first[0] + \
-                      person.last[0] + '">' + person.first + ' ' + person.last + '</label>' + '</li>' + '\n'
-        output += """
-                                </ul>
-                                <center><input type="submit" value="conform" /></center>
-                            </td>
-                        <tr>
-                    </table>
-                </form>
-                <p align="center">Please, select one or more person you want to delete</p>
-            </body>
-            </html>"""
-        connection.sendall(output)
-        connection.close()
+    for person in book.addrbook:
+        output += '\t\t\t\t\t' + '<li>' + '<input type="checkbox" id="' + person.first[0] + person.last[0] + \
+                  '" name="del_' + person.first + '_' + person.last + '" /><label for="' + person.first[0] + \
+                  person.last[0] + '">' + person.first + ' ' + person.last + '</label>' + '</li>' + '\n'
+    output += """
+                            </ul>
+                            <center><input type="submit" value="Conform" /></center>
+                        </td>
+                    <tr>
+                </table>
+            </form>
+            <p align="center">Please, select one or more person you want to delete</p>
+        </body>
+        </html>"""
+    connection.sendall(output)
+    while True:
+        conn, client_addr = sock.accept()
+        request = conn.recv(1024)
+        if request[:3] == 'GET':
+            link = request.split()[1]
+            inf = link.split('&')
+            if inf[0][-1] == '?':
+                create_index(book, sock, conn)
+            if inf[0][-2:] == 'on':
+                for i in inf:
+                    to_delete = i.split('_')
+                    print to_delete
+                    book.del_person(to_delete[-2],to_delete[-1][:-3])
+                create_index(book, sock, conn)
 
 
-def personal_html(person):
-    if not os.path.exists('HTML/Personal'):
-        os.makedirs('HTML/Personal')
+def get_personal_link(person):
     name = person.to_string(['first', 'last'])
     private_html = 'HTML/personal/' + person.to_string(['first']) + '_' + person.to_string(['last']) + '.html'
-    personal_page = open(private_html, 'w')
+    return [name, private_html[5:]]
+
+
+def personal_html(book, person, sock, connection):
+    name = person.to_string(['first', 'last'])
     output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
     output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>' + name + '</title>' + '\n' + '</head>' + '\n'
     output += '<body>' + '\n' + '\t' + '<h1 align="center">' + name + '</h1>' + '\n'
     output += '\t\t' + '<table align="center">' + '\n'
     output += create_personal(person)
-    output += '\t\t' + '</table>' + '\n' + '\t' + '<center><a href="../index_page.html">Main Page</a></center>' + '\n'
+    output += '\t\t' + '</table>' + '\n' + '\t' + '<center><form action="http://localhost:33322"><button name="ok">Ok</button></form></center>' + '\n'
     output += '</body>' + '\n' + '</html>'
-    personal_page.write(output)
-    return [name, private_html[5:]]
+    connection.sendall(output)
+    conn, client_addr = sock.accept()
+    request = conn.recv(1024)
+    if request[:3] == 'GET':
+        link = request.split()[1]
+        if '?ok=' in link:
+            create_index(book, sock, conn)
+        if '/personal/' in link:
+                name = []
+                name_temp = link.split('/')[-1].split('_')
+                name.append(name_temp[0])
+                name.append(name_temp[1][:-5])
+                human = book.find_person_by_name(name[0], name[1])
+                personal_html(book, human, sock, conn)
 
 
 def create_personal(person):
