@@ -505,26 +505,25 @@ def create_socket(book):
     while True:
         connection, client_address = sock.accept()
         request = connection.recv(1024)
-        print request
         if request[:3] == 'GET':
             link = request.split()[1]
-            print link
             urlparse_result = urlparse.urlparse(link)
             if urlparse_result.path == '/favicon.ico':
-                with open('favicon.ico', 'r') as icon_file:
-                    icon = icon_file.read()
-                    connection.sendall('HTTP/1.1 200 OK\r\n\r\n' + icon)
-                    connection.close()
-                    continue
-            print urlparse_result
+                process_favicon(connection)
+                continue
             result = urlparse.parse_qs(urlparse_result.query)
-            print result
             process(book, connection, result)
         connection.close()
 
 
+def process_favicon(connection):
+    with open('favicon.ico', 'r') as icon_file:
+        icon = icon_file.read()
+        connection.sendall('HTTP/1.1 200 OK\r\n\r\n' + icon)
+
+
 def process(book, connection, query):
-    if query == {}:
+    if query:
         create_index(book, connection)
     elif 'add_person' in query:
         create_add(connection)
@@ -539,7 +538,7 @@ def process(book, connection, query):
         create_index(book, connection)
     elif 'del_person' in query:
         create_del(book, connection)
-    elif 'conform_del' in query:
+    elif 'confirm_del' in query:
         delete_person(book, query)
         create_index(book, connection)
     elif 'edit' in query:
@@ -681,7 +680,7 @@ def create_del(book, connection):
                   person.last[0] + '">' + person.first + ' ' + person.last + '</label>' + '</li>' + '\n'
     output += """
                             </ul>
-                            <center><input type="submit" name="conform_del" value="Conform" /></center>
+                            <center><input type="submit" name="confirm_del" value="Conform" /></center>
                         </td>
                     <tr>
                 </table>
@@ -799,23 +798,28 @@ def confirm_edit(book, query):
     name = query['original'][0].split('_')
     person = book.find_person_by_name(name[0], name[1])
     bday = query['birthday'][0].split(', ')
+
     person.first = query['first'][0]
     person.last = query['last'][0]
     person.birthday = Date(int(bday[0]), int(bday[1]), int(bday[2]))
+
     if 'middle' in query:
         person.middle = query['middle'][0]
     else:
         person.middle = None
+
     if 'phone' in query:
         person.phone = query['phone'][0]
     else:
         person.phone = None
+
     if 'spouse' in query:
         spouse_name = query['spouse'][0].split(' ')
         spouse = book.find_person_by_name(spouse_name[0], spouse_name[1])
         person.spouse = spouse
     else:
         person.spouse = None
+
     if 'child' in query:
         person.kids = []
         for one in query['child']:
@@ -824,16 +828,7 @@ def confirm_edit(book, query):
             person.kids.append(kid)
     else:
         person.kids = []
-    if 'home' in query:
-        addr = []
-        addr_parse = query['home'][0].split(', ')
-        for k in addr_parse:
-            addr.append(k)
-        current_addr = Address()
-        current_addr.props = addr
-        person.home = current_addr
-    else:
-        person.home = None
+
     if 'home' in query:
         home_addr = []
         home_addr_parse = query['home'][0].split(', ')
@@ -844,6 +839,7 @@ def confirm_edit(book, query):
         person.home = current_home_addr
     else:
         person.home = None
+
     if 'work' in query:
         work_addr = []
         work_addr_parse = query['work'][0].split(', ')
