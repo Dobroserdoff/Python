@@ -1,5 +1,7 @@
 import socket
+import urlparse
 # -*- coding: utf-8 -*-
+
 
 
 class Date(object):
@@ -496,19 +498,58 @@ def main():
 def create_socket(book):
     book.sort('first')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_address = ('localhost', 33322)
     sock.bind(server_address)
     sock.listen(5)
-    connection, client_address = sock.accept()
-    request = connection.recv(1024)
-    if request[:3] == 'GET':
-        link = request.split()[1]
-        if link == '/favicon.ico':
-            connection.sendall('HTTP/1.1 404 Page Not Found')
-        create_index(book, sock, connection)
+    while True:
+        connection, client_address = sock.accept()
+        request = connection.recv(1024)
+        print request
+        if request[:3] == 'GET':
+            link = request.split()[1]
+            print link
+            urlparse_result = urlparse.urlparse(link)
+            if urlparse_result.path == '/favicon.ico':
+                with open('favicon.ico', 'r') as icon_file:
+                    icon = icon_file.read()
+                    connection.sendall('HTTP/1.1 200 OK\r\n\r\n' + icon)
+                    connection.close()
+                    continue
+            print urlparse_result
+            result = urlparse.parse_qs(urlparse_result.query)
+            print result
+            process(book, connection, result)
+        connection.close()
 
 
-def create_index(book, sock, connection):
+def process(book, connection, query):
+    if query == {}:
+        create_index(book, connection)
+    elif 'add_person' in query:
+        create_add(connection)
+    elif 'cancel' in query:
+        create_index(book, connection)
+    elif 'confirm_add' in query:
+        confirm_add(book, query)
+        create_index(book, connection)
+    elif 'personal' in query:
+        create_personal(book, query['personal'][0], connection)
+    elif 'personal_ok' in query:
+        create_index(book, connection)
+    elif 'del_person' in query:
+        create_del(book, connection)
+    elif 'conform_del' in query:
+        delete_person(book, query)
+        create_index(book, connection)
+    elif 'edit' in query:
+        edit_personal(book, query['edit'][0], connection)
+    elif 'confirm_edit' in query:
+        confirm_edit(book, query)
+        create_index(book, connection)
+
+
+def create_index(book, connection):
     output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
             <html>
             <head lang="en">
@@ -531,12 +572,12 @@ def create_index(book, sock, connection):
                 <tr>
                     <td>
                         <form action="http://localhost:33322" method="get">
-                           <button name="add_person">Add Person</button>
+                           <button name="add_person" value="on">Add Person</button>
                         </form>
                     </td>
                     <td>
                         <form action="http://localhost:33322" method="get">
-                           <button name="del_person">Delete Person</button>
+                           <button name="del_person" value="on">Delete Person</button>
                         </form>
                     </td>
                 </tr>
@@ -544,27 +585,9 @@ def create_index(book, sock, connection):
     </body>
     </html>"""
     connection.sendall(output)
-    while True:
-        conn, client_addr = sock.accept()
-        request = conn.recv(1024)
-        if request[:3] == 'GET':
-            link = request.split()[1]
-            if link == '/favicon.ico':
-                connection.sendall('HTTP/1.1 404 Page Not Found')
-            if 'add_person' in link:
-                create_add(book, sock, conn)
-            if 'del_person' in link:
-                create_del(book, sock, conn)
-            if '/personal/' in link:
-                name = []
-                name_temp = link.split('/')[-1].split('_')
-                name.append(name_temp[0])
-                name.append(name_temp[1][:-5])
-                human = book.find_person_by_name(name[0], name[1])
-                personal_html(book, human, sock, conn)
 
 
-def create_add(book, sock, connection):
+def create_add(connection):
     output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
         <html>
         <head lang="en">
@@ -607,8 +630,8 @@ def create_add(book, sock, connection):
                         <td><input type="text" name="work"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment"/></td>
                     </tr>
                     <tr>
-                        <td align="right"><input type="submit" value="Confirm" /></form></td>
-                        <td align="left"><form action="http://localhost:33322" method="get"><button name="cancel">Cancel</button></center></td>
+                        <td align="right"><input type="submit" name="confirm_add" value="Confirm" /></form></td>
+                        <td align="left"><form action="http://localhost:33322" method="get"><button name="cancel" value="on">Cancel</button></center></td>
                     </tr>
                 </table>
 
@@ -616,36 +639,26 @@ def create_add(book, sock, connection):
         </body>
         </html>"""
     connection.sendall(output)
-    while True:
-        conn, client_addr = sock.accept()
-        request = conn.recv(1024)
-        if request[:3] == 'GET':
-            link = request.split()[1]
-            if link == '/favicon.ico':
-                connection.sendall('HTTP/1.1 404 Page Not Found')
-            if 'cancel' in link:
-                create_index(book, sock, conn)
-            inf = link.split('&')
-            if len(inf) == 7:
-                date_format = inf[3][9:].split('%2C+')
-                human = Person()
-                human.create_from_name_and_birthday(inf[0][8:], inf[2][5:],
-                                                    Date(int(date_format[0]), int(date_format[1]), int(date_format[2])))
-                if len(inf[1]) > 7:
-                    human.set_middle_name(inf[1][8:])
-                if len(inf[4]) > 6:
-                    human.set_phone(inf[4][7:])
-                if len(inf[5]) > 5:
-                    home_address = inf[5][5:].split('%2C+')
-                    human.set_home(', '.join(home_address))
-                if len(inf[6]) > 5:
-                    work_address = inf[6][5:].split('%2C+')
-                    human.set_work(', '.join(work_address))
-                book.addrbook.append(human)
-                create_index(book, sock, conn)
 
 
-def create_del(book, sock, connection):
+def confirm_add(book, query):
+    bday = query['birthday'][0].split(', ')
+    human = Person()
+    human.create_from_name_and_birthday(query['first'][0], query['last'][0], Date(int(bday[0]), int(bday[1]), int(bday[2])))
+    if 'middle' in query:
+        human.set_middle_name(query['middle'][0])
+    if 'phone' in query:
+        human.set_phone(query['phone'][0])
+    if 'home' in query:
+        home_address = query['home'][0].split(', ')
+        human.set_home(', '.join(home_address))
+    if 'work' in query:
+        work_address = query['work'][0].split(', ')
+        human.set_work(', '.join(work_address))
+    book.addrbook.append(human)
+
+
+def create_del(book, connection):
     output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
             <html>
             <head lang="en">
@@ -668,7 +681,7 @@ def create_del(book, sock, connection):
                   person.last[0] + '">' + person.first + ' ' + person.last + '</label>' + '</li>' + '\n'
     output += """
                             </ul>
-                            <center><input type="submit" value="Conform" /></center>
+                            <center><input type="submit" name="conform_del" value="Conform" /></center>
                         </td>
                     <tr>
                 </table>
@@ -677,59 +690,36 @@ def create_del(book, sock, connection):
         </body>
         </html>"""
     connection.sendall(output)
-    while True:
-        conn, client_addr = sock.accept()
-        request = conn.recv(1024)
-        if request[:3] == 'GET':
-            link = request.split()[1]
-            if link == '/favicon.ico':
-                connection.sendall('HTTP/1.1 404 Page Not Found')
-            inf = link.split('&')
-            if inf[0][-1] == '?':
-                create_index(book, sock, conn)
-            if inf[0][-2:] == 'on':
-                for i in inf:
-                    to_delete = i.split('_')
-                    book.del_person(to_delete[-2],to_delete[-1][:-3])
-                create_index(book, sock, conn)
+
+
+def delete_person(book, query):
+    for person in query:
+        if person[:4] == 'del_':
+            name = person[4:].split('_')
+            book.del_person(name[0], name[1])
 
 
 def get_personal_link(person):
     name = person.to_string(['first', 'last'])
-    private_html = 'HTML/personal/' + person.to_string(['first']) + '_' + person.to_string(['last']) + '.html'
-    return [name, private_html[5:]]
+    private_query = '/?personal=' + person.to_string(['first']) + '_' + person.to_string(['last'])
+    return [name, private_query]
 
 
-def personal_html(book, person, sock, connection):
-    name = person.to_string(['first', 'last'])
+def create_personal(book, person_name, connection):
+    name_parse = person_name.split('_')
+    name = name_parse[0] + ' ' + name_parse[1]
+    person = book.find_person_by_name(name_parse[0], name_parse[1])
     output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
     output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>' + name + '</title>' + '\n' + '</head>' + '\n'
     output += '<body>' + '\n' + '\t' + '<h1 align="center">' + name + '</h1>' + '\n'
     output += '\t\t' + '<table align="center">' + '\n'
-    output += create_personal(person)
-    output += '\t\t' + '</table>' + '\n' + '\t' + '<center><form action="http://localhost:33322"><button name="ok">Ok</button><button name="edit">Edit</button></form></center>' + '\n'
+    output += individual(person)
+    output += '\t\t' + '</table>' + '\n' + '\t' + '<center><form action="http://localhost:33322"><button name="personal_ok" value="on">Ok</button><button name="edit" value="' + person_name + '">Edit</button></form></center>' + '\n'
     output += '</body>' + '\n' + '</html>'
     connection.sendall(output)
-    conn, client_addr = sock.accept()
-    request = conn.recv(1024)
-    if request[:3] == 'GET':
-        link = request.split()[1]
-        if link == '/favicon.ico':
-            connection.sendall('HTTP/1.1 404 Page Not Found')
-        if '?ok=' in link:
-            create_index(book, sock, conn)
-        if '?edit=' in link:
-            edit_personal(book, person, sock, conn)
-        if '/personal/' in link:
-                name = []
-                name_temp = link.split('/')[-1].split('_')
-                name.append(name_temp[0])
-                name.append(name_temp[1][:-5])
-                human = book.find_person_by_name(name[0], name[1])
-                personal_html(book, human, sock, conn)
 
 
-def create_personal(person):
+def individual(person):
     result = ''
     set_order = ['Name:', 'Second Name:', 'Last Name:', 'Date of Birth:', 'Phone Number:', 'Spouse:', 'Children:',
                  'Home Address:', 'Work Address:']
@@ -737,18 +727,18 @@ def create_personal(person):
         if person[i]:
             result += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>' + set_order[i] + '</td>' + '\n'
             if i == 5:
-                result += '\t\t\t\t' + '<td>' + '<a href="' + person.spouse.to_string(['first']) + '_' + \
-                          person.spouse.to_string(['last']) + '.html">' + person.spouse.to_string(['first', 'last']) + \
+                result += '\t\t\t\t' + '<td>' + '<a href="/?personal=' + person.spouse.to_string(['first']) + '_' + \
+                          person.spouse.to_string(['last']) + '">' + person.spouse.to_string(['first', 'last']) + \
                           '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
                 continue
             if i == 6:
                 result += '\t\t\t\t' + '<td>'
                 for kid in person.kids:
                     if kid == person.kids[-1]:
-                        result += '<a href="' + kid.first + '_' + kid.last + '.html">' + kid.first + ' ' + \
+                        result += '<a href="/?personal=' + kid.first + '_' + kid.last + '">' + kid.first + ' ' + \
                                   kid.last + '</a>'
                     else:
-                        result += '<a href="' + kid.first + '_' + kid.last + '.html">' + kid.first + ' ' + \
+                        result += '<a href="/?personal=' + kid.first + '_' + kid.last + '">' + kid.first + ' ' + \
                                   kid.last + '</a>' + '<br />'
                 result += '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
                 continue
@@ -756,8 +746,10 @@ def create_personal(person):
     return result
 
 
-def edit_personal(book, person, sock, connection):
-    name = person.to_string(['first', 'last'])
+def edit_personal(book, person_name, connection):
+    name_parse = person_name.split('_')
+    name = name_parse[0] + ' ' + name_parse[1]
+    person = book.find_person_by_name(name_parse[0], name_parse[1])
     output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
     output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<style>' + '\n' + '\t\t' + 'sup {color: red}' + '\n' + '\t' + '</style>' + '\n' + '\t' + '<title>Edit ' + name + '</title>' + '\n' + '</head>' + '\n'
     output += '<body>' + '\n' + '\t' + '<h1 align="center">Edit ' + name + '</h1>' + '\n'
@@ -793,63 +785,75 @@ def edit_personal(book, person, sock, connection):
     output += '\t\t\t\t' + '<td align="left">Work Address:</td>' + '\n'
     output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['work']) + '" name="work"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment"/></td>' + '\n'
     output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="right"><input type="submit" value="Confirm" /></form></td>' + '\n'
-    output += '\t\t\t\t' + '<td align="left"><form action="http://localhost:33322" method="get"><button name="cancel">Cancel</button></center></td>' + '\n'
+    output += '\t\t\t\t' + '<td><input type="text" hidden name="original" value="' + person_name + '"></td>' + '\n'
+    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
+    output += '\t\t\t\t' + '<td align="right"><input type="submit" name ="confirm_edit" value="Confirm" /></form></td>' + '\n'
+    output += '\t\t\t\t' + '<td align="left"><form action="http://localhost:33322" method="get"><button name="cancel" value="on">Cancel</button></center></td>' + '\n'
     output += '\t\t\t' + '</tr>' + '\n' + '\t\t' + '</table>' + '\n'
     output += '\t' + '<p align="center">Fields marked as <sup>*</sup> are obligatory to fill</p>' + '\n'
     output += '</body>' + '\n' + '</html>'
     connection.sendall(output)
-    conn, client_addr = sock.accept()
-    request = conn.recv(1024)
-    print request
-    if request[:3] == 'GET':
-        link = request.split()[1]
-        if link == '/favicon.ico':
-            connection.sendall('HTTP/1.1 404 Page Not Found')
-        print link
-        if '?first=' in link:
-            inf = []
-            temp_inf = link.split('&')
-            for i in temp_inf:
-                position = i.find('=') + 1
-                inf.append(i[position:])
-            print inf
-            for j in range(len(inf)):
-                if j == 3 and inf[j]:
-                    bday = inf[j].split('%2C+')
-                    person.birthday = Date(bday[0], bday[1], bday[2])
-                    continue
-                if j == 5 and inf[j]:
-                    name = inf[j].split('+')
-                    print name
-                    other_person = book.find_person_by_name(name[0], name[1])
-                    if other_person:
-                        person.set_spouse(other_person)
-                    else:
-                        person[j] = str(name[0]) + ' ' + str(name[1])
-                    continue
-                if j == 7 and inf[j]:
-                    temp_addr = inf[j].split('%2C+')
-                    addr = []
-                    for k in temp_addr:
-                        addr.append(k.replace('+', ' '))
-                    current_addr = Address()
-                    current_addr.props = addr
-                    person.home = current_addr
-                    continue
-                if j == 8 and inf[j]:
-                    temp_addr = inf[j].split('%2C+')
-                    addr = []
-                    for k in temp_addr:
-                        addr.append(k.replace('+', ' '))
-                    current_addr = Address()
-                    current_addr.props = addr
-                    person.work = current_addr
-                    continue
-                person[j] = inf[j]
-            personal_html(book, person, sock, conn)
-        if '?cancel=' in link:
-            personal_html(book, person, sock, conn)
+
+
+def confirm_edit(book, query):
+    name = query['original'][0].split('_')
+    person = book.find_person_by_name(name[0], name[1])
+    bday = query['birthday'][0].split(', ')
+    person.first = query['first'][0]
+    person.last = query['last'][0]
+    person.birthday = Date(int(bday[0]), int(bday[1]), int(bday[2]))
+    if 'middle' in query:
+        person.middle = query['middle'][0]
+    else:
+        person.middle = None
+    if 'phone' in query:
+        person.phone = query['phone'][0]
+    else:
+        person.phone = None
+    if 'spouse' in query:
+        spouse_name = query['spouse'][0].split(' ')
+        spouse = book.find_person_by_name(spouse_name[0], spouse_name[1])
+        person.spouse = spouse
+    else:
+        person.spouse = None
+    if 'child' in query:
+        person.kids = []
+        for one in query['child']:
+            kid_name = one.split(' ')
+            kid = book.find_person_by_name(kid_name[0], kid_name[1])
+            person.kids.append(kid)
+    else:
+        person.kids = []
+    if 'home' in query:
+        addr = []
+        addr_parse = query['home'][0].split(', ')
+        for k in addr_parse:
+            addr.append(k)
+        current_addr = Address()
+        current_addr.props = addr
+        person.home = current_addr
+    else:
+        person.home = None
+    if 'home' in query:
+        home_addr = []
+        home_addr_parse = query['home'][0].split(', ')
+        for k in home_addr_parse:
+            home_addr.append(k)
+        current_home_addr = Address()
+        current_home_addr.props = home_addr
+        person.home = current_home_addr
+    else:
+        person.home = None
+    if 'work' in query:
+        work_addr = []
+        work_addr_parse = query['work'][0].split(', ')
+        for l in work_addr_parse:
+            work_addr.append(l)
+        current_work_addr = Address()
+        current_work_addr.props = work_addr
+        person.work = current_work_addr
+    else:
+        person.work = None
 
 
 #creation()
