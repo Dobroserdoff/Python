@@ -1,5 +1,6 @@
 import socket
 import urlparse
+import html
 # -*- coding: utf-8 -*-
 
 
@@ -510,6 +511,7 @@ def create_socket(book):
             urlparse_result = urlparse.urlparse(link)
             if urlparse_result.path == '/favicon.ico':
                 process_favicon(connection)
+                connection.close()
                 continue
             result = urlparse.parse_qs(urlparse_result.query)
             process(book, connection, result)
@@ -523,7 +525,7 @@ def process_favicon(connection):
 
 
 def process(book, connection, query):
-    if query:
+    if not query:
         create_index(book, connection)
     elif 'add_person' in query:
         create_add(connection)
@@ -549,95 +551,15 @@ def process(book, connection, query):
 
 
 def create_index(book, connection):
-    output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
-            <html>
-            <head lang="en">
-                <meta charset="UTF-8">
-                <style>
-                    ul {list-style-type: none; text-align:center;}
-                </style>
-                <title>Address Book</title>
-            </head>
-            <body>
-                <h1 align="center">Address Book</h1>
-                <ul>\r\n"""
-    for person in book.addrbook:
-        personal_link = get_personal_link(person)
-        output += '\t\t' + '<li>' + '<a href="' + personal_link[1] + '">' + personal_link[0] + \
-                  '</a>' + '</li>' + '\n'
-    output += """
-        </ul>
-            <table align="center">
-                <tr>
-                    <td>
-                        <form action="http://localhost:33322" method="get">
-                           <button name="add_person" value="on">Add Person</button>
-                        </form>
-                    </td>
-                    <td>
-                        <form action="http://localhost:33322" method="get">
-                           <button name="del_person" value="on">Delete Person</button>
-                        </form>
-                    </td>
-                </tr>
-            </table>
-    </body>
-    </html>"""
-    connection.sendall(output)
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    index = html.Element('<html>', str(html.header('Address Book') + str(html.index(book))))
+    connection.sendall(doctype + str(index))
 
 
 def create_add(connection):
-    output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
-        <html>
-        <head lang="en">
-            <meta charset="UTF-8">
-            <style>
-                sup {color: red}
-            </style>
-            <title>Add Person</title>
-        </head>
-        <body>
-            <h1 align="center">Add Person</h1>
-            <form action="http://localhost:33322" method="get">
-                <table align="center">
-                    <tr>
-                        <td align="left">First Name:<sup>*</sup></td>
-                        <td><input type="text" name="first" required size="40" maxlength="50" align="center" /></td>
-                    </tr>
-                    <tr>
-                        <td align="left">Second Name:</td>
-                        <td><input type="text" name="middle"  size="40" maxlength="50" align="center" /></td>
-                    </tr>
-                    <tr>
-                        <td align="left">Last Name:<sup>*</sup></td>
-                        <td><input type="text" name="last" required size="40" maxlength="50" align="center" /></td>
-                    </tr>
-                    <tr>
-                        <td align="left">Date of Birth:<sup>*</sup></td>
-                        <td><input type="text" name="birthday" required size="40" maxlength="50" align="center" placeholder="YYYY, MM, DD" pattern="\d{4}, \d{1,2}, \d{1,2}" /></td>
-                    </tr>
-                    <tr>
-                        <td align="left">Phone Number:</td>
-                        <td><input type="text" name="phone"  size="40" maxlength="50" align="center" /></td>
-                    </tr>
-                    <tr>
-                        <td align="left">Home Address:</td>
-                        <td><input type="text" name="home"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment" /></td>
-                    </tr>
-                    <tr>
-                        <td align="left">Work Address:</td>
-                        <td><input type="text" name="work"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment"/></td>
-                    </tr>
-                    <tr>
-                        <td align="right"><input type="submit" name="confirm_add" value="Confirm" /></form></td>
-                        <td align="left"><form action="http://localhost:33322" method="get"><button name="cancel" value="on">Cancel</button></center></td>
-                    </tr>
-                </table>
-
-            <p align="center">Fields marked as <sup>*</sup> are obligatory to fill</p>
-        </body>
-        </html>"""
-    connection.sendall(output)
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    add = html.Element('<html>', str(html.header('Add Person') + str(html.add())))
+    connection.sendall(doctype + str(add))
 
 
 def confirm_add(book, query):
