@@ -4,7 +4,6 @@ import html
 # -*- coding: utf-8 -*-
 
 
-
 class Date(object):
     def __init__(self, year, month, day):
         self.year = year
@@ -255,8 +254,12 @@ class Person(object):
 
             if print_prop_name == 'kids':
                 for kid in self.kids:
-                    result.append(kid.first)
-                    result.append(kid.last)
+                    if kid != self.kids[-1]:
+                        result.append(kid.first)
+                        result.append(kid.last + ',')
+                    else:
+                        result.append(kid.first)
+                        result.append(kid.last)
                 continue
 
             prop_value = self.get_prop_by_name(print_prop_name)
@@ -552,20 +555,23 @@ def process(book, connection, query):
 
 def create_index(book, connection):
     doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
-    index = html.Element('<html>', str(html.header('Address Book') + str(html.index(book))))
+    style = html.Element('<style>', 'ul {list-style-type: none; text-align:center;}')
+    index = html.Element('<html>', str(html.header('Address Book', style) + str(html.index(book))))
     connection.sendall(doctype + str(index))
 
 
 def create_add(connection):
     doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
-    add = html.Element('<html>', str(html.header('Add Person') + str(html.add())))
+    style = html.Element('<style>', 'sup {color: red}')
+    add = html.Element('<html>', str(html.header('Add Person', style) + str(html.add_and_edit('add'))))
     connection.sendall(doctype + str(add))
 
 
 def confirm_add(book, query):
     bday = query['birthday'][0].split(', ')
     human = Person()
-    human.create_from_name_and_birthday(query['first'][0], query['last'][0], Date(int(bday[0]), int(bday[1]), int(bday[2])))
+    human.create_from_name_and_birthday(query['first'][0], query['last'][0],
+                                        Date(int(bday[0]), int(bday[1]), int(bday[2])))
     if 'middle' in query:
         human.set_middle_name(query['middle'][0])
     if 'phone' in query:
@@ -576,41 +582,22 @@ def confirm_add(book, query):
     if 'work' in query:
         work_address = query['work'][0].split(', ')
         human.set_work(', '.join(work_address))
+    if 'spouse' in query:
+        spouse = query['spouse'][0].split(' ')
+        human.set_spouse(book.find_person_by_name(spouse[0], spouse[1]))
+    if 'kids' in query:
+        kids = query['kids'][0].split(', ')
+        for i in kids:
+            kid_name = i.split(' ')
+            human.add_kid(book.find_person_by_name(kid_name[0], kid_name[1]))
     book.addrbook.append(human)
 
 
 def create_del(book, connection):
-    output = """HTTP/1.1 200 OK\r\n\r\n<!DOCTYPE html>
-            <html>
-            <head lang="en">
-                <meta charset="UTF-8">
-                <style>
-                    ul {list-style-type: none; text-align:left;}
-                </style>
-                <title>Delete Person</title>
-            </head>
-            <body>
-                <h1 align="center">Delete Person</h1>
-                <form action="http://localhost:33322" method="get">
-                    <table align="center">
-                        <tr>
-                            <td>
-                                <ul>\r\n"""
-    for person in book.addrbook:
-        output += '\t\t\t\t\t' + '<li>' + '<input type="checkbox" id="' + person.first[0] + person.last[0] + \
-                  '" name="del_' + person.first + '_' + person.last + '" /><label for="' + person.first[0] + \
-                  person.last[0] + '">' + person.first + ' ' + person.last + '</label>' + '</li>' + '\n'
-    output += """
-                            </ul>
-                            <center><input type="submit" name="confirm_del" value="Conform" /></center>
-                        </td>
-                    <tr>
-                </table>
-            </form>
-            <p align="center">Please, select one or more person you want to delete</p>
-        </body>
-        </html>"""
-    connection.sendall(output)
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    style = html.Element('<style>', 'ul {list-style-type: none; text-align:left;}')
+    delete = html.Element('<html>', str(html.header('Delete Person', style) + str(html.delete(book))))
+    connection.sendall(doctype + str(delete))
 
 
 def delete_person(book, query):
@@ -620,100 +607,23 @@ def delete_person(book, query):
             book.del_person(name[0], name[1])
 
 
-def get_personal_link(person):
-    name = person.to_string(['first', 'last'])
-    private_query = '/?personal=' + person.to_string(['first']) + '_' + person.to_string(['last'])
-    return [name, private_query]
-
-
 def create_personal(book, person_name, connection):
     name_parse = person_name.split('_')
     name = name_parse[0] + ' ' + name_parse[1]
     person = book.find_person_by_name(name_parse[0], name_parse[1])
-    output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
-    output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<title>' + name + '</title>' + '\n' + '</head>' + '\n'
-    output += '<body>' + '\n' + '\t' + '<h1 align="center">' + name + '</h1>' + '\n'
-    output += '\t\t' + '<table align="center">' + '\n'
-    output += individual(person)
-    output += '\t\t' + '</table>' + '\n' + '\t' + '<center><form action="http://localhost:33322"><button name="personal_ok" value="on">Ok</button><button name="edit" value="' + person_name + '">Edit</button></form></center>' + '\n'
-    output += '</body>' + '\n' + '</html>'
-    connection.sendall(output)
-
-
-def individual(person):
-    result = ''
-    set_order = ['Name:', 'Second Name:', 'Last Name:', 'Date of Birth:', 'Phone Number:', 'Spouse:', 'Children:',
-                 'Home Address:', 'Work Address:']
-    for i in range(len(set_order)):
-        if person[i]:
-            result += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td>' + set_order[i] + '</td>' + '\n'
-            if i == 5:
-                result += '\t\t\t\t' + '<td>' + '<a href="/?personal=' + person.spouse.to_string(['first']) + '_' + \
-                          person.spouse.to_string(['last']) + '">' + person.spouse.to_string(['first', 'last']) + \
-                          '</a>' + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-                continue
-            if i == 6:
-                result += '\t\t\t\t' + '<td>'
-                for kid in person.kids:
-                    if kid == person.kids[-1]:
-                        result += '<a href="/?personal=' + kid.first + '_' + kid.last + '">' + kid.first + ' ' + \
-                                  kid.last + '</a>'
-                    else:
-                        result += '<a href="/?personal=' + kid.first + '_' + kid.last + '">' + kid.first + ' ' + \
-                                  kid.last + '</a>' + '<br />'
-                result += '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-                continue
-            result += '\t\t\t\t' + '<td>' + str(person[i]) + '</td>' + '\n' + '\t\t\t' + '</tr>' + '\n'
-    return result
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    personal = html.Element('<html>', str(html.header(name) + str(html.personal(person))))
+    connection.sendall(doctype + str(personal))
 
 
 def edit_personal(book, person_name, connection):
     name_parse = person_name.split('_')
     name = name_parse[0] + ' ' + name_parse[1]
     person = book.find_person_by_name(name_parse[0], name_parse[1])
-    output = '<!DOCTYPE html>' + '\n' + '<html>' + '\n' + '<head lang="en">' + '\n'
-    output += '\t' + '<meta charset="UTF-8">' + '\n' + '\t' + '<style>' + '\n' + '\t\t' + 'sup {color: red}' + '\n' + '\t' + '</style>' + '\n' + '\t' + '<title>Edit ' + name + '</title>' + '\n' + '</head>' + '\n'
-    output += '<body>' + '\n' + '\t' + '<h1 align="center">Edit ' + name + '</h1>' + '\n'
-    output += '\t' + '<form action="http://localhost:33322" method="get">' + '\n' + '\t\t' + '<table align="center">' + '\n'
-    output += '\t\t\t' + '<tr>' + '\n' + '\t\t\t\t' + '<td align="left">First Name:<sup>*</sup></td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['first']) + '" name="first" required size="40" maxlength="50" align="center" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Second Name:</td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['middle']) + '" name="middle"  size="40" maxlength="50" align="center" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Last Name:<sup>*</sup></td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['last']) + '" name="last" required size="40" maxlength="50" align="center" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Date of Birth:<sup>*</sup></td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['birthday']) + '" name="birthday" required size="40" maxlength="50" align="center" placeholder="YYYY, MM, DD" pattern="\d{4}, \d{1,2}, \d{1,2}" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Phone Number:</td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['phone']) + '" name="phone"  size="40" maxlength="50" align="center" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Spouse:</td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['spouse']) + '" name="spouse" placeholder="First and last names only" size="40" maxlength="50" align="center" /></td>' + '\n'
-    for kid in person.kids:
-        output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-        output += '\t\t\t\t' + '<td align="left">Child:</td>' + '\n'
-        output += '\t\t\t\t' + '<td><input type="text" value="' + kid.to_string(['first', 'last']) + '" name="child"  size="40" maxlength="50" align="center" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Child:</td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" name="child" placeholder="First and last names only" size="40" maxlength="50" align="center" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Home Address:</td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['home']) + '" name="home"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment" /></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="left">Work Address:</td>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" value="' + person.to_string(['work']) + '" name="work"  size="40" maxlength="50" align="center" placeholder="Country, City, Street, Building, Apartment"/></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td><input type="text" hidden name="original" value="' + person_name + '"></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t\t' + '<tr>' + '\n'
-    output += '\t\t\t\t' + '<td align="right"><input type="submit" name ="confirm_edit" value="Confirm" /></form></td>' + '\n'
-    output += '\t\t\t\t' + '<td align="left"><form action="http://localhost:33322" method="get"><button name="cancel" value="on">Cancel</button></center></td>' + '\n'
-    output += '\t\t\t' + '</tr>' + '\n' + '\t\t' + '</table>' + '\n'
-    output += '\t' + '<p align="center">Fields marked as <sup>*</sup> are obligatory to fill</p>' + '\n'
-    output += '</body>' + '\n' + '</html>'
-    connection.sendall(output)
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    style = html.Element('<style>', 'sup {color: red}')
+    edit = html.Element('<html>', str(html.header('Edit ' + name, style) + str(html.add_and_edit('edit', person))))
+    connection.sendall(doctype + str(edit))
 
 
 def confirm_edit(book, query):
@@ -742,12 +652,14 @@ def confirm_edit(book, query):
     else:
         person.spouse = None
 
-    if 'child' in query:
+    if 'kids' in query:
         person.kids = []
-        for one in query['child']:
-            kid_name = one.split(' ')
-            kid = book.find_person_by_name(kid_name[0], kid_name[1])
-            person.kids.append(kid)
+        for i in query['kids']:
+            kid_full = i.split(', ')
+            for j in kid_full:
+                kid_name = j.split(' ')
+                kid = book.find_person_by_name(kid_name[0], kid_name[1])
+                person.kids.append(kid)
     else:
         person.kids = []
 
@@ -774,6 +686,6 @@ def confirm_edit(book, query):
         person.work = None
 
 
-#creation()
+# creation()
 if __name__ == '__main__':
     main()

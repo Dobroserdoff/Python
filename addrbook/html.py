@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 class Element(object):
 
     def __init__(self, tag, content=None, tab=0):
@@ -44,15 +45,19 @@ class Element(object):
                 self.tag = attr_tag
         return self
 
-def header(title):
-    style = Element('<style>', 'ul {list-style-type: none; text-align:center;}\nsup {color: red}')
+
+def header(title, style=None):
     title = Element('<title>', title)
-    head = Element('<head>', str('<meta charset="UTF-8">\n') + str(style) + str(title))
+    if style:
+        head = Element('<head>', str('<meta charset="UTF-8">\n') + str(style) + str(title))
+    else:
+        head = Element('<head>', str('<meta charset="UTF-8">\n') + str(title))
     result = str(head.set_attribute('lang', 'en'))
     return result
 
+
 def index(book):
-    h1 = Element('<h1>', 'Address Book').set_attribute('align', 'center')
+    title = Element('<h1>', 'Address Book').set_attribute('align', 'center')
     book_list = []
     for person in book.addrbook:
         personal_link = get_personal_link(person)
@@ -60,44 +65,57 @@ def index(book):
         li = Element('<li>', str(personal_element))
         book_list.append(str(li))
     ul = Element('<ul>', ''.join(book_list))
-    cells = create_cells_index()
-    table = create_table(1, 2, ['align', 'center'], cells)
-    body = Element('<body>', str(h1) + str(ul) + str(table))
+    addbutton = Element('<button>', 'Add Person').set_attribute('name', 'add_person').set_attribute('value', 'on')
+    addbutton_center = Element('<center>', str(addbutton))
+    addform = Element('<form>', str(addbutton_center)).set_attribute('action', 'http://localhost:33322')
+    addform.set_attribute('method', 'get')
+    delbutton = Element('<button>', 'Delete Person').set_attribute('name', 'del_person').set_attribute('value', 'on')
+    delbutton_center = Element('<center>', str(delbutton))
+    delform = Element('<form>', str(delbutton_center)).set_attribute('action', 'http://localhost:33322')
+    delform.set_attribute('method', 'get')
+    body = Element('<body>', str(title) + str(ul) + str(addform) + str(delform))
     return body
 
 
-def create_cells_index():
-    button001 = Element('<button>', 'Add Person').set_attribute('name', 'add_person').set_attribute('value', 'on')
-    cell001 = Element('<form>', str(button001)).set_attribute('action', 'http://localhost:33322')
-    cell001.set_attribute('method', 'get')
-    result001 = Element('<td>', str(cell001))
-    button002 = Element('<button>', 'Delete Person').set_attribute('name', 'del_person').set_attribute('value', 'on')
-    cell002 = Element('<form>', str(button002)).set_attribute('action', 'http://localhost:33322')
-    cell002.set_attribute('method', 'get')
-    result002 = Element('<td>', str(cell002))
-    result = [result001, result002]
-    return result
+def get_personal_link(person):
+    name = person.to_string(['first', 'last'])
+    private_query = '/?personal=' + person.to_string(['first']) + '_' + person.to_string(['last'])
+    return [name, private_query]
 
 
-def add():
-    title = Element('<h1>', 'Add Person').set_attribute('align', 'center')
-    cells = create_cells_add()
-    table = create_table(8, 2, ['align', 'center'], cells)
-    form = Element('<form>', str(table)).set_attribute('action', 'http://localhost:33322')
+def add_and_edit(value, person=None):
+    if value == 'add':
+        title = Element('<h1>', 'Add Person').set_attribute('align', 'center')
+    else:
+        title = Element('<h1>', 'Edit ' + person.to_string(['first']) + ' ' +
+                        person.to_string(['last'])).set_attribute('align', 'center')
+    cells = create_cells_add_and_edit(person)
+    if value == 'add':
+        table = create_table(9, 2, ['align', 'center'], cells)
+    else:
+        table = create_table(10, 2, ['align', 'center'], cells)
+    confirm = Element('<input />').set_attribute('type', 'submit').set_attribute('name', 'confirm_' + value)
+    confirm.set_attribute('value', 'Confirm')
+    confirm_center = Element('<center>', str(confirm))
+    form = Element('<form>', str(table) + str(confirm_center)).set_attribute('action', 'http://localhost:33322')
     form.set_attribute('method', 'get')
+    cancel = Element('<button>', 'Cancel').set_attribute('name', 'cancel').set_attribute('value', 'on')
+    cancel_center = Element('<center>', str(cancel))
+    cancel_form = Element('<form>', str(cancel_center)).set_attribute('action', 'http://localhost:33322')
     disclaimer = Element('<p>', str('Fields marked as <sup>*</sup> are obligatory to fill'))
     disclaimer.set_attribute('align', 'center')
-    body = Element('<body>', str(title) + str(form) + str(disclaimer))
+    body = Element('<body>', str(title) + str(form) + str(cancel_form) + str(disclaimer))
     return body
 
 
-def create_cells_add():
+def create_cells_add_and_edit(person=None):
     sup = '<sup>*</sup>'
-    person_names = ['First Name:', 'Second Name:', 'Last Name:', 'Date of Birth:', 'Phone Number:', 'Home:', 'Work:']
-    person_values = ['first', 'middle', 'last', 'birthday', 'phone', 'home', 'work']
+    person_names = ['First Name:', 'Second Name:', 'Last Name:', 'Date of Birth:', 'Phone Number:', 'Spouse:',
+                    'Children:', 'Home:', 'Work:']
+    person_values = ['first', 'middle', 'last', 'birthday', 'phone', 'spouse', 'kids', 'home', 'work']
     patterns_names = []
     patterns_values = []
-    result =[]
+    result = []
     for i in person_names:
         if i == 'First Name:' or i == 'Last Name:' or i == 'Date of Birth:':
             pattern_names = Element('<td>', i + str(sup)).set_attribute('align', 'left')
@@ -106,7 +124,9 @@ def create_cells_add():
         patterns_names.append(pattern_names)
     for j in person_values:
         pattern_values = Element('<input />').set_attribute('type', 'text').set_attribute('name', j).\
-            set_attribute('size', '40').set_attribute('maxlength', '50').set_attribute('align', 'center')
+            set_attribute('size', '40').set_attribute('maxlength', '150').set_attribute('align', 'center')
+        if person:
+            pattern_values.set_attribute('value', person.to_string([j]))
         if j == 'first' or j == 'last' or j == 'birthday':
             pattern_values.set_attribute('required')
         if j == 'birthday':
@@ -114,26 +134,93 @@ def create_cells_add():
             pattern_values.set_attribute('pattern', '\d{4}, \d{1,2}, \d{1,2}')
         if j == 'home' or j == 'work':
             pattern_values.set_attribute('placeholder', 'Country, City, Street, Building, Apartment')
+        if j == 'spouse':
+            pattern_values.set_attribute('placeholder', 'Firstname Lastname')
+        if j == 'kids':
+            pattern_values.set_attribute('placeholder', 'Firstname Lastname, Firstname Lastname')
         pattern_values_cells = Element('<td>', pattern_values)
         patterns_values.append(pattern_values_cells)
     for k in range(len(patterns_names)):
         result.append(patterns_names[k])
         result.append(patterns_values[k])
-    confirm = Element('<input />').set_attribute('type', 'submit').set_attribute('name', 'confirm_add')
-    confirm.set_attribute('value', 'Confirm')
-    cell_confirm = Element('<td>', str(confirm)).set_attribute('align', 'right')
-    result.append(cell_confirm)
-    cancel = Element('<button>', 'Cancel').set_attribute('name', 'cancel').set_attribute('value', 'on')
-    cancel_form = Element('<form>', str(cancel)).set_attribute('action', 'http://localhost:33322')
-    cell_cancel = Element('<td>', str(cancel_form)).set_attribute('align', 'left')
-    result.append(cell_cancel)
+    if person:
+        hidden_name = Element('<input />').set_attribute('type', 'text').set_attribute('hidden')
+        hidden_name.set_attribute('name', 'original').set_attribute('value', person.first + '_' + person.last)
+        result.append(hidden_name)
+        result.append('')
     return result
 
 
-def get_personal_link(person):
-    name = person.to_string(['first', 'last'])
-    private_query = '/?personal=' + person.to_string(['first']) + '_' + person.to_string(['last'])
-    return [name, private_query]
+def delete(book):
+    title = Element('<h1>', 'Delete Person').set_attribute('align', 'center')
+    book_list = []
+    for person in book.addrbook:
+        input_element = Element('<input />').set_attribute('type', 'checkbox')
+        input_element.set_attribute('id', person.first[0] + person.last[0])
+        input_element.set_attribute('name', 'del_' + person.first + '_' + person.last)
+        label = Element('<label>', person.first + ' ' + person.last)
+        label.set_attribute('for', person.first[0] + person.last[0])
+        li = Element('<li>', str(input_element) + str(label))
+        book_list.append(str(li))
+    ul = Element('<ul>', ''.join(book_list))
+    listcell = Element('<td>', str(ul))
+    confirm = Element('<input />').set_attribute('type', 'submit').set_attribute('name', 'confirm_del')
+    confirm.set_attribute('value', 'Confirm')
+    confirm_center = Element('<center>', str(confirm))
+    confirmcell = Element('<td>', str(confirm_center))
+    table = create_table(2, 1, ['align', 'center'], [listcell, confirmcell])
+    form = Element('<form>', str(table)).set_attribute('action', 'http://localhost:33322')
+    form.set_attribute('method', 'get')
+    disclaimer = Element('<p>', 'Please, select one or more person you want to delete')
+    disclaimer.set_attribute('align', 'center')
+    body = Element('<body>', str(title) + str(form) + str(disclaimer))
+    return body
+
+
+def personal(person):
+    title = Element('<h1>', person.to_string(['first']) + ' ' +
+                    person.to_string(['last'])).set_attribute('align', 'center')
+    cells = create_cells_personal(person)
+    table = create_table(cells[0], 2, ['align', 'center'], cells[1])
+    edit_button = Element('<button>', 'Edit').set_attribute('name', 'edit')
+    edit_button.set_attribute('value', person.first + '_' + person.last)
+    ok_button = Element('<button>', 'Ok').set_attribute('name', 'personal_ok')
+    ok_button.set_attribute('value', 'on')
+    form = Element('<form>', str(edit_button) + str(Element('<br />')) + str(ok_button))
+    form.set_attribute('action', 'http://localhost:33322').set_attribute('method', 'get')
+    center_form = Element('<center>', str(form))
+    body = Element('<body>', str(title) + str(table) + str(center_form))
+    return body
+
+
+def create_cells_personal(person):
+    result = []
+    counter = 0
+    set_order = ['Name:', 'Second Name:', 'Last Name:', 'Date of Birth:', 'Phone Number:', 'Spouse:', 'Children:',
+                 'Home Address:', 'Work Address:']
+    for i in range(len(set_order)):
+        if person[i]:
+            result.append(Element('<td>', set_order[i]))
+            if i == 5:
+                link = Element('<a>', person.spouse.to_string(['first', 'last']))
+                link.set_attribute('href', '/?personal=' + person.spouse.to_string(['first']) + '_' +
+                                   person.spouse.to_string(['last']))
+                cell = Element('<td>', str(link))
+            elif i == 6:
+                children = []
+                for kid in person.kids:
+                    link = Element('<a>', kid.first + ' ' + kid.last)
+                    link.set_attribute('href', '/?personal=' + kid.first + '_' + kid.last)
+                    children.append(str(link))
+                    if kid != person.kids[-1]:
+                        children.append(str(Element('<br />')))
+                cell = Element('<td>', ''.join(children))
+            else:
+                cell = Element('<td>', person[i])
+            counter += 1
+            result.append(cell)
+    final = [counter, result]
+    return final
 
 
 def create_table(rows, columns, attributes, content):
@@ -153,6 +240,8 @@ def create_table(rows, columns, attributes, content):
     table = Element('<table>', ''.join(allrows))
     allrows = []
     for k in range(len(attributes)):
+        if k % 2:
+            continue
         table.set_attribute(attributes[k], attributes[k+1])
         k += 2
         if k == len(attributes):
