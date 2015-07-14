@@ -28,6 +28,15 @@ class Element(object):
                 result += self.tab * '\t' + self.closingtag + '\n'
         return result
 
+    def __add__(self, other):
+        self_str_content = str(self)[str(self).find(self.content):]
+        other_str_content = str(other)[:str(other).find(other.closingtag)]
+        if self_str_content[0] != '\t':
+            self_str_content = '\t' + self_str_content
+        result = Element(self.tag, self_str_content + other_str_content, -1)
+        result.closingtag = other.closingtag
+        return result
+
     def set_attribute(self, name, value=None):
         if self.tag[-2] == '/':
             if value:
@@ -247,3 +256,14 @@ def create_table(rows, columns, attributes, content):
         if k == len(attributes):
             break
     return table
+
+sixth = Element('<button>', 'button')
+fifth = Element('<li>', 'another text')
+fourth = Element('<li>', 'other text')
+third = Element('<li>', 'sample text')
+second = Element('<ul>', third + fourth + fifth + sixth)
+print second
+first = Element('<body>', second + third)
+#print first
+#xmp = Element('<html>', first)
+#print xmp
