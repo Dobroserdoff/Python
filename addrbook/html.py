@@ -29,11 +29,11 @@ class Element(object):
         return result
 
     def __add__(self, other):
-        self_str_content = str(self)[str(self).find(self.content):]
-        other_str_content = str(other)[:str(other).find(other.closingtag)]
-        if self_str_content[0] != '\t':
-            self_str_content = '\t' + self_str_content
-        result = Element(self.tag, self_str_content + other_str_content, -1)
+        content = str(self) + str(other)
+        end = content.rfind(other.closingtag)
+        if content[len(self.tag):end][-1] == '\n':
+            end -= 1
+        result = Element(self.tag, content[len(self.tag):end], -1)
         result.closingtag = other.closingtag
         return result
 
@@ -256,14 +256,3 @@ def create_table(rows, columns, attributes, content):
         if k == len(attributes):
             break
     return table
-
-sixth = Element('<button>', 'button')
-fifth = Element('<li>', 'another text')
-fourth = Element('<li>', 'other text')
-third = Element('<li>', 'sample text')
-second = Element('<ul>', third + fourth + fifth + sixth)
-print second
-first = Element('<body>', second + third)
-#print first
-#xmp = Element('<html>', first)
-#print xmp
