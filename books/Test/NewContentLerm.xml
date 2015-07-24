@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<dc:title>Герой нашего времени</dc:title>
+		<dc:language>ru</dc:language>
+		<dc:identifier>9b418117-d6c0-43c9-8da8-5317464879fd</dc:identifier>
+		<dc:date>2004</dc:date>
+		<dc:creator p6:file-as="Лермонтов" xmlns:p6="http://www.idpf.org/2007/opf">Михаил Юрьевич Лермонтов</dc:creator>
+	</metadata>
+</package>

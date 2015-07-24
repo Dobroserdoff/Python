@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<dc:title>Человек в футляре (Сборник)</dc:title>
+		<dc:title>Человек в футляре</dc:title>
+		<dc:language>ru</dc:language>
+		<dc:identifier>2ac8f149-e595-102b-ad6d-529b169bc60e</dc:identifier>
+		<dc:date>2007</dc:date>
+		<dc:creator p6:file-as="Чехов" xmlns:p6="http://www.idpf.org/2007/opf">Антон Павлович Чехов</dc:creator>
+	</metadata>
+</package>

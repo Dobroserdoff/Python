@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package version="2.0" unique-identifier="FB2BookID" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dcterms="http://purl.org/dc/terms/">
+    <dc:title>Герой нашего времени</dc:title>
+    <dc:title>Герой нашего времени</dc:title>
+    <dc:language xsi:type="dcterms:RFC3066">ru</dc:language>
+    <dc:identifier id="FB2BookID" p6:scheme="URI" xmlns:p6="http://www.idpf.org/2007/opf">urn:uuid:9b418117-d6c0-43c9-8da8-5317464879fd</dc:identifier>
+    <dc:identifier id="BookISBN" p6:scheme="ISBN" xmlns:p6="http://www.idpf.org/2007/opf">5-352-00618-2</dc:identifier>
+    <dc:date p6:event="original-publication" xmlns:p6="http://www.idpf.org/2007/opf">2004</dc:date>
+    <dc:creator p6:role="aut" p6:file-as="Лермонтов f.c" xmlns:p6="http://www.idpf.org/2007/opf">Михаил Юрьевич Лермонтов</dc:creator>
+    <dc:contributor p6:role="adp" p6:file-as="f.c" xmlns:p6="http://www.idpf.org/2007/opf">Stranger</dc:contributor>
+    <dc:publisher>Азбука-классика</dc:publisher>
+    <dc:description>Роман «Герой нашего времени» – одна из вершин русской прозы первой половины XIX в. Воспринятый современниками М.Ю. Лермонтова как «странный», роман побуждает все новые и новые поколения читателей искать решения его загадкам.  </dc:description>
+    <dc:subject>prose_rus_classic</dc:subject>
+    <dc:subject>prose_classic</dc:subject>
+    <meta name="cover" content="cover.jpg" />
+  </metadata>
+  <manifest>
+    <item id="cover.jpg" href="images/cover.jpg" media-type="image/jpeg" />
+    <item id="LiberationSerif-Regular" href="fonts/LiberationSerif-Regular.ttf" media-type="application/x-font-ttf" />
+    <item id="LiberationSerif-Italic" href="fonts/LiberationSerif-Italic.ttf" media-type="application/x-font-ttf" />
+    <item id="LiberationSerif-Bold" href="fonts/LiberationSerif-Bold.ttf" media-type="application/x-font-ttf" />
+    <item id="LiberationSerif-BoldItalic" href="fonts/LiberationSerif-BoldItalic.ttf" media-type="application/x-font-ttf" />
+    <item id="mainCSS" href="css/main.css" media-type="text/css" />
+    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml" />
+    <item id="title" href="title.xhtml" media-type="application/xhtml+xml" />
+    <item id="annotation" href="annotation.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent1_0" href="section1.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent2_0" href="section2.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent3_0" href="section3.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent4_0" href="section4.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent5_0" href="section5.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent6_0" href="section6.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent7_0" href="section7.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent8_0" href="section8.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent9_0" href="section9.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent10_0" href="section10.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent11_0" href="section11.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent12_0" href="section12.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent13_0" href="section13.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent14_0" href="section14.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent15_0" href="section15.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent16_0" href="section16.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent17_0" href="section17.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent18_0" href="section18.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent19_0" href="section19.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent20_0" href="section20.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent21_0" href="section21.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent22_0" href="section22.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent23_0" href="section23.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent24_0" href="section24.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent25_0" href="section25.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent26_0" href="section26.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent27_0" href="section27.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent28_0" href="section28.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent29_0" href="section29.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent30_0" href="section30.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent31_0" href="section31.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent32_0" href="section32.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent33_0" href="section33.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent34_0" href="section34.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent35_0" href="section35.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent36_0" href="section36.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent37_0" href="section37.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent38_0" href="section38.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent39_0" href="section39.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent40_0" href="section40.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent41_0" href="section41.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent42_0" href="section42.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent43_0" href="section43.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent44_0" href="section44.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent45_0" href="section45.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent46_0" href="section46.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent47_0" href="section47.xhtml" media-type="application/xhtml+xml" />
+    <item id="bookcontent48_0" href="section48.xhtml" media-type="application/xhtml+xml" />
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="cover" />
+    <itemref idref="title" />
+    <itemref idref="annotation" />
+    <itemref idref="bookcontent1_0" />
+    <itemref idref="bookcontent2_0" />
+    <itemref idref="bookcontent3_0" />
+    <itemref idref="bookcontent4_0" />
+    <itemref idref="bookcontent5_0" />
+    <itemref idref="bookcontent6_0" />
+    <itemref idref="bookcontent7_0" />
+    <itemref idref="bookcontent8_0" />
+    <itemref idref="bookcontent9_0" />
+    <itemref idref="bookcontent10_0" />
+    <itemref idref="bookcontent11_0" />
+    <itemref idref="bookcontent12_0" />
+    <itemref idref="bookcontent13_0" />
+    <itemref idref="bookcontent14_0" />
+    <itemref idref="bookcontent15_0" />
+    <itemref idref="bookcontent16_0" />
+    <itemref idref="bookcontent17_0" />
+    <itemref idref="bookcontent18_0" />
+    <itemref idref="bookcontent19_0" />
+    <itemref idref="bookcontent20_0" />
+    <itemref idref="bookcontent21_0" />
+    <itemref idref="bookcontent22_0" />
+    <itemref idref="bookcontent23_0" />
+    <itemref idref="bookcontent24_0" />
+    <itemref idref="bookcontent25_0" />
+    <itemref idref="bookcontent26_0" />
+    <itemref idref="bookcontent27_0" />
+    <itemref idref="bookcontent28_0" />
+    <itemref idref="bookcontent29_0" />
+    <itemref idref="bookcontent30_0" />
+    <itemref idref="bookcontent31_0" />
+    <itemref idref="bookcontent32_0" />
+    <itemref idref="bookcontent33_0" />
+    <itemref idref="bookcontent34_0" />
+    <itemref idref="bookcontent35_0" />
+    <itemref idref="bookcontent36_0" />
+    <itemref idref="bookcontent37_0" />
+    <itemref idref="bookcontent38_0" />
+    <itemref idref="bookcontent39_0" />
+    <itemref idref="bookcontent40_0" />
+    <itemref idref="bookcontent41_0" />
+    <itemref idref="bookcontent42_0" />
+    <itemref idref="bookcontent43_0" />
+    <itemref idref="bookcontent44_0" />
+    <itemref idref="bookcontent45_0" />
+    <itemref idref="bookcontent46_0" />
+    <itemref idref="bookcontent47_0" />
+    <itemref idref="bookcontent48_0" />
+  </spine>
+  <guide>
+    <reference type="cover" title="cover" href="cover.xhtml" />
+    <reference type="title-page" title="title" href="title.xhtml" />
+    <reference type="preface" title="annotation" href="annotation.xhtml" />
+    <reference type="title-page" title="bookcontent1_0" href="section1.xhtml" />
+    <reference type="text" title="bookcontent2_0" href="section2.xhtml" />
+    <reference type="text" title="bookcontent3_0" href="section3.xhtml" />
+    <reference type="text" title="bookcontent4_0" href="section4.xhtml" />
+    <reference type="text" title="bookcontent5_0" href="section5.xhtml" />
+    <reference type="text" title="bookcontent6_0" href="section6.xhtml" />
+    <reference type="text" title="bookcontent7_0" href="section7.xhtml" />
+    <reference type="text" title="bookcontent8_0" href="section8.xhtml" />
+    <reference type="text" title="bookcontent9_0" href="section9.xhtml" />
+    <reference type="text" title="bookcontent10_0" href="section10.xhtml" />
+    <reference type="text" title="bookcontent11_0" href="section11.xhtml" />
+    <reference type="text" title="bookcontent12_0" href="section12.xhtml" />
+    <reference type="glossary" title="bookcontent13_0" href="section13.xhtml" />
+    <reference type="glossary" title="bookcontent14_0" href="section14.xhtml" />
+    <reference type="glossary" title="bookcontent15_0" href="section15.xhtml" />
+    <reference type="glossary" title="bookcontent16_0" href="section16.xhtml" />
+    <reference type="glossary" title="bookcontent17_0" href="section17.xhtml" />
+    <reference type="glossary" title="bookcontent18_0" href="section18.xhtml" />
+    <reference type="glossary" title="bookcontent19_0" href="section19.xhtml" />
+    <reference type="glossary" title="bookcontent20_0" href="section20.xhtml" />
+    <reference type="glossary" title="bookcontent21_0" href="section21.xhtml" />
+    <reference type="glossary" title="bookcontent22_0" href="section22.xhtml" />
+    <reference type="glossary" title="bookcontent23_0" href="section23.xhtml" />
+    <reference type="glossary" title="bookcontent24_0" href="section24.xhtml" />
+    <reference type="glossary" title="bookcontent25_0" href="section25.xhtml" />
+    <reference type="glossary" title="bookcontent26_0" href="section26.xhtml" />
+    <reference type="glossary" title="bookcontent27_0" href="section27.xhtml" />
+    <reference type="glossary" title="bookcontent28_0" href="section28.xhtml" />
+    <reference type="glossary" title="bookcontent29_0" href="section29.xhtml" />
+    <reference type="glossary" title="bookcontent30_0" href="section30.xhtml" />
+    <reference type="glossary" title="bookcontent31_0" href="section31.xhtml" />
+    <reference type="glossary" title="bookcontent32_0" href="section32.xhtml" />
+    <reference type="glossary" title="bookcontent33_0" href="section33.xhtml" />
+    <reference type="glossary" title="bookcontent34_0" href="section34.xhtml" />
+    <reference type="glossary" title="bookcontent35_0" href="section35.xhtml" />
+    <reference type="glossary" title="bookcontent36_0" href="section36.xhtml" />
+    <reference type="glossary" title="bookcontent37_0" href="section37.xhtml" />
+    <reference type="glossary" title="bookcontent38_0" href="section38.xhtml" />
+    <reference type="glossary" title="bookcontent39_0" href="section39.xhtml" />
+    <reference type="glossary" title="bookcontent40_0" href="section40.xhtml" />
+    <reference type="glossary" title="bookcontent41_0" href="section41.xhtml" />
+    <reference type="glossary" title="bookcontent42_0" href="section42.xhtml" />
+    <reference type="glossary" title="bookcontent43_0" href="section43.xhtml" />
+    <reference type="glossary" title="bookcontent44_0" href="section44.xhtml" />
+    <reference type="glossary" title="bookcontent45_0" href="section45.xhtml" />
+    <reference type="glossary" title="bookcontent46_0" href="section46.xhtml" />
+    <reference type="glossary" title="bookcontent47_0" href="section47.xhtml" />
+    <reference type="glossary" title="bookcontent48_0" href="section48.xhtml" />
+  </guide>
+</package>
