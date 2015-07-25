@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">
+	<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+		<dc:identifier>urn:uuid:a30d5aa9-5579-4b21-9330-d38ce31a0202</dc:identifier>
+		<dc:creator p6:file-as="Маяковский" xmlns:p6="http://www.idpf.org/2007/opf"> Владимир  Маяковский</dc:creator>
+		<dc:language>ru</dc:language>
+		<dc:title>Облако в штанах -0</dc:title>
+	</metadata>
+</package>
