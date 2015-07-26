@@ -3,30 +3,34 @@ import xml.etree.ElementTree as ET
 
 
 def main(path):
-    step_one = metadata_list(path)
+    step_one, add_content = metadata_list(path)
     step_two = id_clean(step_one)
     step_three = elem_constr(step_two)
-    output(step_three, path)
+    result = output(step_three, add_content)
+    return result
 
 
 def metadata_list(path):
     tree = ET.ElementTree(file=path)
     root = tree.getroot()
     result = {}
+    add_content = []
     for child in root:
         if 'metadata' in child.tag:
             metadata = child
+        else:
+            add_content.append(child)
 
     namespace = '{http://purl.org/dc/elements/1.1/}'
     tags = ['title', 'language', 'identifier','date', 'creator']
     for elem in metadata.iter():
         for tag in tags:
-            if namespace + tag in elem.tag:
+            if namespace + tag == elem.tag:
                 if tag in result:
                     result[tag].append(elem.text)
                 else:
                     result[tag]=[elem.text]
-    return result
+    return result, add_content
 
 
 def id_clean(result):
@@ -53,28 +57,35 @@ def elem_constr(result):
             element.text = value
             if key == 'creator':
                 element.attrib = creator_clean(element.text)
+            if key == 'identifier':
+                element.attrib = 'id="Zero"'
             elements.append(element)
     return elements
 
 
-def output(elements, path):
+def output(elements, add_content):
     metas = []
     for element in elements:
         if element.attrib:
-            meta = '\t\t<' + element.tag + ' ' + element.attrib + '>'
+            meta = '    <' + element.tag + ' ' + element.attrib + '>'
         else:
-            meta = '\t\t<' + element.tag + '>'
+            meta = '    <' + element.tag + '>'
         meta += element.text
         meta += '</' + element.tag + '>\n'
         metas.append(meta)
-    out = open('Test/NewContent' + path[:path.find('/')] + '.xml', 'w')
-    header = '<?xml version="1.0"?>\n<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">' \
-             '\n\t<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+
+    result = '<?xml version="1.0"?>\n<package version="2.0" ' \
+             'xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">\n  ' \
+             '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+
     for i in metas:
-        header += i.encode('utf-8')
-    header += '\t</metadata>\n'
-    header += '</package>'
-    out.write(header)
+        result += i.encode('utf-8')
+    result += '  </metadata>\n  '
+    for piece in add_content:
+        result += ET.tostring(piece)
+    result += '</package>'
+    return result
+
 
 if __name__ == '__main__':
-    main('Test/NewContentLerm.xml')
+    main()

@@ -23,7 +23,6 @@ class TestConverter(unittest.TestCase):
     def test_titles_namespace(self):
         metadata = Converter.metadata_list(self.get_path('meta2.xml'))
         titles = metadata['title']
-        print titles
         expected = [u'Человек в футляре (Сборник)', u'Человек в футляре']
         self.assertEqual(expected, titles)
 
