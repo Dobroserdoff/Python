@@ -20,8 +20,13 @@ def main(filename, patch, output):
         step_two = Converter.id_clean(step_one, path)
         fix = metadata_content(step_two, patch)
         metadata = elem_constr(fix)
-        fix_add_content(add_content)
+        cover = metadata_cover(metadata_request)
+        fix_add_content(add_content, cover)
         result = Converter.output(metadata, add_content)
+        if os.path.exists(path + '/OEBPS/images/' + cover['content']):
+            os.remove(path + '/OEBPS/images/' + cover['content'])
+        if os.path.exists(path + '/OEBPS/fonts'):
+            shutil.rmtree(path + '/OEBPS/fonts')
         out = open(path + '/' + content, 'w')
         try:
             out.write(result)
@@ -32,16 +37,54 @@ def main(filename, patch, output):
     finally:
         if not DEBUG:
             if os.path.isdir(path):
-                shutil.rmtree(path)
+                    shutil.rmtree(path)
 
 
-def fix_add_content(content):
+def metadata_cover(path):
+    tree = ET.ElementTree(file=path)
+    root = tree.getroot()
+    for child in root:
+        if 'metadata' in child.tag:
+            for piece in child:
+                if 'meta' in piece.tag:
+                    meta = piece
+    return meta.attrib
+
+
+def fix_add_content(content, cover):
+    guide(content, cover)
+    manifest(content, cover)
+    spine(content, cover)
+    return content
+
+
+def manifest(content, cover):
     for piece in content:
         if 'manifest' in piece.tag:
             for elem in list(piece):
-                if 'fonts' in elem.attrib['href']:
+                if elem.attrib['media-type'] == 'application/x-font-ttf':
                     piece.remove(elem)
-                elif 'cover' in elem.attrib['href']:
+                elif elem.attrib['href'] == 'images/' + cover['content']:
+                    cover.update({'id': elem.attrib['id']})
+                    piece.remove(elem)
+                elif elem.attrib['id'] == cover['name']:
+                    piece.remove(elem)
+
+
+def guide(content, cover):
+    for piece in content:
+        if 'guide' in piece.tag:
+            for elem in list(piece):
+                if elem.attrib['type'] == cover['name']:
+                    cover.update({'href': elem.attrib['href']})
+                    piece.remove(elem)
+
+
+def spine(content, cover):
+    for piece in content:
+        if 'spine' in piece.tag:
+            for elem in list(piece):
+                if elem.attrib['idref'] == cover['name']:
                     piece.remove(elem)
 
 
@@ -93,6 +136,5 @@ def process(arg, cwd=None):
     if returncode != 0:
         raise Exception(err)
 
-
 if __name__ == '__main__':
-    main('chelovek_v_futlyare_sbornik_.epub', 'testbook.xml', 'finalform')
+    main('Oblako v shtanah.epub', 'testbook.xml', 'finalform')

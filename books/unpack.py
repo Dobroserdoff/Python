@@ -95,4 +95,4 @@ def process(arg, cwd=None):
 
 
 if __name__ == '__main__':
-    main('chelovek_v_futlyare_sbornik_.epub')
+    main('Oblako v shtanah.epub')
