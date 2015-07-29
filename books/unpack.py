@@ -16,7 +16,7 @@ def main(filename):
         process(['unzip', filename, '-d' + path])
         content = find_content(path + '/META-INF/container.xml')
         metadata_request = path + '/' + content
-        step_one, add_content = Converter.metadata_list(metadata_request)
+        step_one = Converter.metadata_list(metadata_request)
         step_two = Converter.id_clean(step_one, path)
         metadata = elem_constr(step_two)
         result = output(metadata)
@@ -95,4 +95,4 @@ def process(arg, cwd=None):
 
 
 if __name__ == '__main__':
-    main('Oblako v shtanah.epub')
+    main('chelovek_v_futlyare_sbornik_.epub')

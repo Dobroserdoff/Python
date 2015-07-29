@@ -16,17 +16,15 @@ def main(filename, patch, output):
         process(['unzip', filename, '-d' + path])
         content = find_content(path + '/META-INF/container.xml')
         metadata_request = path + '/' + content
-        step_one, add_content = Converter.metadata_list(metadata_request)
+        step_one = Converter.metadata_list(metadata_request)
         step_two = Converter.id_clean(step_one, path)
         fix = metadata_content(step_two, patch)
         metadata = elem_constr(fix)
-        cover = metadata_cover(metadata_request)
-        fix_add_content(add_content, cover)
-        result = Converter.output(metadata, add_content)
-        if os.path.exists(path + '/OEBPS/images/' + cover['content']):
-            os.remove(path + '/OEBPS/images/' + cover['content'])
-        if os.path.exists(path + '/OEBPS/fonts'):
-            shutil.rmtree(path + '/OEBPS/fonts')
+        add_content = metadata_uncover(metadata_request)
+        fix_add = fix_add_content(add_content, metadata_request[:metadata_request.rfind('/')+1])
+        result = Converter.output(metadata, fix_add)
+        if os.path.exists(metadata_request[:metadata_request.rfind('/')+1] + 'fonts'):
+            shutil.rmtree(metadata_request[:metadata_request.rfind('/')+1] + 'fonts')
         out = open(path + '/' + content, 'w')
         try:
             out.write(result)
@@ -37,55 +35,70 @@ def main(filename, patch, output):
     finally:
         if not DEBUG:
             if os.path.isdir(path):
-                    shutil.rmtree(path)
+                shutil.rmtree(path)
 
 
-def metadata_cover(path):
+def metadata_uncover(path):
     tree = ET.ElementTree(file=path)
     root = tree.getroot()
+    add_content = []
+
     for child in root:
         if 'metadata' in child.tag:
             for piece in child:
                 if 'meta' in piece.tag:
                     meta = piece
-    return meta.attrib
+        elif 'manifest' in child.tag:
+            for elem in list(child):
+                if elem.attrib['id'] == meta.attrib['content']:
+                    if os.path.exists(path[:path.rfind('/')+1] + elem.attrib['href']):
+                        os.remove(path[:path.rfind('/')+1] + elem.attrib['href'])
+                    child.remove(elem)
+            add_content.append(child)
+        else:
+            add_content.append(child)
+
+    return add_content
 
 
-def fix_add_content(content, cover):
-    guide(content, cover)
-    manifest(content, cover)
-    spine(content, cover)
-    return content
+def fix_add_content(content, path):
+    guide_uncover, cover = guide(content)
+    manifest_uncover = manifest(guide_uncover, cover, path)
+    add_content = spine(manifest_uncover, cover)
+    return add_content
 
 
-def manifest(content, cover):
+def guide(content):
+    cover = {}
+    for piece in content:
+        if 'guide' in piece.tag:
+            for elem in list(piece):
+                if elem.attrib['type'] == 'cover':
+                    cover.update({'title': elem.attrib['title']})
+                    piece.remove(elem)
+    return content, cover
+
+
+def manifest(content, cover, path):
     for piece in content:
         if 'manifest' in piece.tag:
             for elem in list(piece):
                 if elem.attrib['media-type'] == 'application/x-font-ttf':
                     piece.remove(elem)
-                elif elem.attrib['href'] == 'images/' + cover['content']:
-                    cover.update({'id': elem.attrib['id']})
+                elif elem.attrib['id'] == cover['title']:
+                    if os.path.exists(path + elem.attrib['href']):
+                        os.remove(path + elem.attrib['href'])
                     piece.remove(elem)
-                elif elem.attrib['id'] == cover['name']:
-                    piece.remove(elem)
-
-
-def guide(content, cover):
-    for piece in content:
-        if 'guide' in piece.tag:
-            for elem in list(piece):
-                if elem.attrib['type'] == cover['name']:
-                    cover.update({'href': elem.attrib['href']})
-                    piece.remove(elem)
+    return content
 
 
 def spine(content, cover):
     for piece in content:
         if 'spine' in piece.tag:
             for elem in list(piece):
-                if elem.attrib['idref'] == cover['name']:
+                if elem.attrib['idref'] == cover['title']:
                     piece.remove(elem)
+    return content
 
 
 def elem_constr(result):
@@ -137,4 +150,4 @@ def process(arg, cwd=None):
         raise Exception(err)
 
 if __name__ == '__main__':
-    main('Oblako v shtanah.epub', 'testbook.xml', 'finalform')
+    main('chelovek_v_futlyare_sbornik_.epub', 'testbook.xml', 'finalform')

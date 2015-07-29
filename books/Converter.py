@@ -63,8 +63,6 @@ def metadata_list(path):
     for child in root:
         if 'metadata' in child.tag:
             metadata = child
-        else:
-            add_content.append(child)
 
     namespace = '{http://purl.org/dc/elements/1.1/}'
     tags = ['title', 'language', 'identifier', 'date', 'creator']
@@ -75,7 +73,7 @@ def metadata_list(path):
                     result[tag].append(elem.text)
                 else:
                     result[tag] = [elem.text]
-    return result, add_content
+    return result
 
 
 def id_clean(result, unique):
