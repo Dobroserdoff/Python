@@ -1,14 +1,15 @@
-import os
-import shutil
-import subprocess
-import xml.etree.ElementTree as ET
-import Converter
-import uuid
+import os, shutil, subprocess, xml.etree.ElementTree as ET, uuid, sys, Converter
 
 DEBUG = False
 
 
-def main(filename, patch, output):
+def main():
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        patch = sys.argv[2]
+    else:
+        filename = 'chelovek_v_futlyare_sbornik_.epub'
+        patch = 'testbook.xml'
     path = str(uuid.uuid4())
     os.mkdir(path)
 
@@ -23,15 +24,19 @@ def main(filename, patch, output):
         add_content = metadata_uncover(metadata_request)
         fix_add = fix_add_content(add_content, metadata_request[:metadata_request.rfind('/')+1])
         result = Converter.output(metadata, fix_add)
-        if os.path.exists(metadata_request[:metadata_request.rfind('/')+1] + 'fonts'):
-            shutil.rmtree(metadata_request[:metadata_request.rfind('/')+1] + 'fonts')
+
         out = open(path + '/' + content, 'w')
         try:
             out.write(result)
         finally:
             out.close()
         process(['zip', '-r', '../' + path, 'mimetype', 'META-INF', 'OEBPS'], cwd=path)
-        os.rename(path + '.zip', output + '.epub')
+
+        if len(sys.argv) > 3:
+            os.rename(path + '.zip', sys.argv[3] + '.epub')
+        else:
+            os.rename(path + '.zip', 'new_' + filename)
+
     finally:
         if not DEBUG:
             if os.path.isdir(path):
@@ -65,6 +70,8 @@ def fix_add_content(content, path):
     guide_uncover, cover = guide(content)
     manifest_uncover = manifest(guide_uncover, cover, path)
     add_content = spine(manifest_uncover, cover)
+    if os.path.exists(path + 'fonts'):
+        shutil.rmtree(path + 'fonts')
     return add_content
 
 
@@ -150,4 +157,10 @@ def process(arg, cwd=None):
         raise Exception(err)
 
 if __name__ == '__main__':
-    main('chelovek_v_futlyare_sbornik_.epub', 'testbook.xml', 'finalform')
+    try:
+        main()
+    except Exception as e:
+        print >> sys.stderr, 'Error occured', e
+        sys.exit(1)
+
+    sys.exit(0)

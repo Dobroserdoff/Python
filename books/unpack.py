@@ -1,14 +1,13 @@
-import os
-import shutil
-import subprocess
-import xml.etree.ElementTree as ET
-import Converter
-import uuid
+import os, shutil, subprocess, xml.etree.ElementTree as ET, uuid, sys, Converter
 
 DEBUG = False
 
 
-def main(filename):
+def main():
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+    else:
+        filename = 'chelovek_v_futlyare_sbornik_.epub'
     path = str(uuid.uuid4())
     os.mkdir(path)
 
@@ -95,4 +94,10 @@ def process(arg, cwd=None):
 
 
 if __name__ == '__main__':
-    main('chelovek_v_futlyare_sbornik_.epub')
+    try:
+        main()
+    except Exception as e:
+        print >> sys.stderr, 'Error occured', e
+        sys.exit(1)
+
+    sys.exit(0)
