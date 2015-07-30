@@ -1,4 +1,4 @@
-import os, shutil, subprocess, xml.etree.ElementTree as ET, uuid, sys, Converter
+import os, shutil, subprocess, xml.etree.ElementTree as ET, uuid, sys, json, unpack
 
 DEBUG = False
 
@@ -17,13 +17,13 @@ def main():
         process(['unzip', filename, '-d' + path])
         content = find_content(path + '/META-INF/container.xml')
         metadata_request = path + '/' + content
-        step_one = Converter.metadata_list(metadata_request)
-        step_two = Converter.id_clean(step_one, path)
+        step_one = unpack.metadata_list(metadata_request)
+        step_two = unpack.year_and_id_clean(step_one, path)
         fix = metadata_content(step_two, patch)
         metadata = elem_constr(fix)
         add_content = metadata_uncover(metadata_request)
         fix_add = fix_add_content(add_content, metadata_request[:metadata_request.rfind('/')+1])
-        result = Converter.output(metadata, fix_add)
+        result = output(metadata, fix_add)
 
         out = open(path + '/' + content, 'w')
         try:
@@ -155,6 +155,32 @@ def process(arg, cwd=None):
     returncode = proc.returncode
     if returncode != 0:
         raise Exception(err)
+
+
+def output(elements, add_content=None):
+    metas = []
+    for element in elements:
+        if element.attrib:
+            meta = '    <' + element.tag + ' ' + element.attrib + '>'
+        else:
+            meta = '    <' + element.tag + '>'
+        meta += element.text
+        meta += '</' + element.tag + '>\n'
+        metas.append(meta)
+
+    result = '<?xml version="1.0"?>\n<package version="2.0" ' \
+             'xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">\n  ' \
+             '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+
+    for i in metas:
+        result += i.encode('utf-8')
+    result += '  </metadata>\n  '
+    if add_content:
+        for piece in add_content:
+            result += ET.tostring(piece)
+    result += '</package>'
+    return result
+
 
 if __name__ == '__main__':
     try:
