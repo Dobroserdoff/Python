@@ -12,8 +12,7 @@
             5-17-031957-6, 5-9713-0045-8
         </dc:identifier>
         <dc:date p6:event="original-publication" xmlns:p6="http://www.idpf.org/2007/opf">2007</dc:date>
-        <dc:creator p6:role="aut" p6:file-as="Чехов f.c" xmlns:p6="http://www.idpf.org/2007/opf">Антон Павлович Чехов
-        </dc:creator>
+        <dc:creator p6:role="aut" p6:file-as="Чехов f.c" xmlns:p6="http://www.idpf.org/2007/opf">Антон Павлович Чехов</dc:creator>
         <dc:contributor p6:role="adp" p6:file-as="Mcat78 f.c" xmlns:p6="http://www.idpf.org/2007/opf">Mcat78 Mcat78
         </dc:contributor>
         <dc:publisher>АСТ, АСТ Москва</dc:publisher>

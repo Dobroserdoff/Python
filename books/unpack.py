@@ -8,32 +8,45 @@ def main():
     if len(sys.argv) > 1:
         filename = sys.argv[1]
     else:
-        filename = 'geroi_nashego_vremeni.epub'
-    path = str(uuid.uuid4())
-    os.mkdir(path)
+        filename = 'chelovek_v_futlyare_sbornik_.epub'
+    if not os.path.isdir('temp/'):
+        os.mkdir('temp/')
 
     try:
-        process(['unzip', filename, '-d' + path])
-        content = find_content(path + '/META-INF/container.xml')
-        metadata_request = path + '/' + content
-        step_one = metadata_list(metadata_request)
-        step_two = year_and_id_clean(step_one, path)
-        metadata = elem_constr(step_two)
-        result = output(metadata)
+        process(['unzip', filename, '-d', 'temp/'])
+        content = find_content('temp/META-INF/container.xml')
+        metadata_request = 'temp/' + content
+        book_xml_string = get_xml_string(metadata_request)
+        result_json = parse_book_xml(book_xml_string)
         out = open('testbook.json', 'w')
         try:
-            out.write(json.dumps(result, indent=4, ensure_ascii=False, sort_keys=True).encode('utf-8'))
+            out.write(result_json)
         finally:
             out.close()
     finally:
         if not DEBUG:
-            if os.path.isdir(path):
-                shutil.rmtree(path)
+            if os.path.isdir('temp/'):
+                shutil.rmtree('temp/')
 
 
-def metadata_list(path):
-    tree = ET.ElementTree(file=path)
+def get_xml_string(xml_path):
+    tree = ET.ElementTree(file=xml_path)
     root = tree.getroot()
+    return ET.tostring(root)
+
+
+def parse_book_xml(book_xml_string):
+    root = ET.fromstring(book_xml_string)
+    metadata_list(root)
+    step_one = metadata_list(root)
+    step_two = year_and_id_clean(step_one)
+    metadata = elem_constr(step_two)
+    result_dict = output(metadata)
+    result_json = json.dumps(result_dict, indent=4, ensure_ascii=False, sort_keys=True).encode('utf-8')
+    return result_json
+
+
+def metadata_list(root):
     result = {}
     for child in root:
         if 'metadata' in child.tag:
@@ -51,7 +64,8 @@ def metadata_list(path):
     return result
 
 
-def year_and_id_clean(result, unique):
+def year_and_id_clean(result):
+    unique = str(uuid.uuid4())
     if len(result['identifier']) > 1:
         for value in result['identifier']:
             if 'uuid' in value:
