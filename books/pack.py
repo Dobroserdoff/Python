@@ -7,7 +7,7 @@ import json
 import unpack
 import xml.etree.ElementTree as ET
 
-DEBUG = False
+DEBUG = True
 
 
 def main():
@@ -143,6 +143,13 @@ def delete_files(files_to_delete, path):
     cwd = 'temp/' + path[:path.rfind('/') + 1]
     for item in files_to_delete:
         os.remove(cwd + item)
+    list_of_files = os.walk(cwd)
+    for item in list(list_of_files):
+        if not item[2]:
+            try:
+                os.rmdir(item[0])
+            except Exception as j:
+                print >> sys.stderr, 'Error occured', j
 
 
 def elem_constr(metajson):

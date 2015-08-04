@@ -84,12 +84,11 @@ def year_and_id_clean(result):
 def elem_constr(result):
     elements = []
     for key in result:
-        if key == 'title':
-            while len(result[key]) > 1:
-                if len(result[key][0]) > len(result[key][1]):
-                    del result[key][1]
-                else:
-                    del result[key][0]
+        while len(result[key]) > 1:
+            if len(result[key][0]) > len(result[key][1]):
+                del result[key][1]
+            else:
+                del result[key][0]
         for value in result[key]:
             element = ET.Element(key)
             element.text = value

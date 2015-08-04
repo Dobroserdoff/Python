@@ -7,17 +7,19 @@ from unittest import TestCase
 class TestUnpack(TestCase):
 
     def test_unpack_001(self):
-        self.do_unpack_test('meta1.xml', 'meta1.json')
+        self.do_unpack_test('meta3.xml', 'meta1.json')
 
     def do_unpack_test(self, xml_path, json_path):
         tree = ET.ElementTree(file=xml_path)
         root = tree.getroot()
         result_produced = unpack.parse_book_xml(ET.tostring(root))
+        print result_produced
         json_file = open(json_path)
         try:
             result_expected = json_file.read()
         finally:
             json_file.close()
+        print result_expected
         self.assertEqual(result_produced, result_expected)
 
 
