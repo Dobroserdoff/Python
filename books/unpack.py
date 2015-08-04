@@ -1,4 +1,10 @@
-import os, shutil, subprocess, xml.etree.ElementTree as ET, uuid, sys, json
+import os
+import shutil
+import subprocess
+import uuid
+import sys
+import json
+import xml.etree.ElementTree as ET
 # -*- coding: UTF-8 -*-
 
 DEBUG = False
@@ -37,7 +43,6 @@ def get_xml_string(xml_path):
 
 def parse_book_xml(book_xml_string):
     root = ET.fromstring(book_xml_string)
-    metadata_list(root)
     step_one = metadata_list(root)
     step_two = year_and_id_clean(step_one)
     metadata = elem_constr(step_two)
@@ -73,11 +78,6 @@ def year_and_id_clean(result):
                 break
     else:
         result['identifier'] = [unique]
-    year = []
-    for item in result['date']:
-        year.append(int(item))
-    result['year'] = year
-    del result['date']
     return result
 
 

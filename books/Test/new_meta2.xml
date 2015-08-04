@@ -1,13 +1,5 @@
 <?xml version="1.0"?>
-<package version="2.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:date>2007</dc:date>
-    <dc:identifier id="Zero">83b3574a-7b9a-428c-a636-541d63cd441a</dc:identifier>
-    <dc:creator p6:file-as="Чехов" xmlns:p6="http://www.idpf.org/2007/opf">Антон Павлович Чехов</dc:creator>
-    <dc:language>ru</dc:language>
-    <dc:title>Человек в футляре (Сборник)</dc:title>
-  </metadata>
-  <ns0:manifest xmlns:ns0="http://www.idpf.org/2007/opf">
+<package xmlns:ns0="http://www.idpf.org/2007/opf" unique-identifier="Zero" version="2.0" xmlns="http://www.idpf.org/2007/opf"><metadata xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:date>2007</dc:date><dc:title>Человек в футляре (Сборник)</dc:title><dc:language>ru</dc:language><dc:creator p6:file-as="Чехов" xmlns:p6="http://www.idpf.org/2007/opf">Антон Павлович Чехов</dc:creator></metadata><ns0:manifest>
     <ns0:item href="css/main.css" id="mainCSS" media-type="text/css" />
     <ns0:item href="title.xhtml" id="title" media-type="application/xhtml+xml" />
     <ns0:item href="annotation.xhtml" id="annotation" media-type="application/xhtml+xml" />
@@ -142,7 +134,7 @@
     <ns0:item href="section129.xhtml" id="bookcontent129_0" media-type="application/xhtml+xml" />
     <ns0:item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml" />
   </ns0:manifest>
-  <ns0:spine xmlns:ns0="http://www.idpf.org/2007/opf" toc="ncx">
+  <ns0:spine toc="ncx">
     <ns0:itemref idref="title" />
     <ns0:itemref idref="annotation" />
     <ns0:itemref idref="bookcontent1_0" />
@@ -275,7 +267,7 @@
     <ns0:itemref idref="bookcontent128_0" />
     <ns0:itemref idref="bookcontent129_0" />
   </ns0:spine>
-  <ns0:guide xmlns:ns0="http://www.idpf.org/2007/opf">
+  <ns0:guide>
     <ns0:reference href="title.xhtml" title="title" type="title-page" />
     <ns0:reference href="annotation.xhtml" title="annotation" type="preface" />
     <ns0:reference href="section1.xhtml" title="bookcontent1_0" type="title-page" />

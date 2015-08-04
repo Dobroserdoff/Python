@@ -1,4 +1,11 @@
-import os, shutil, subprocess, xml.etree.ElementTree as ET, uuid, sys, json, unpack
+import os
+import shutil
+import subprocess
+import uuid
+import sys
+import json
+import unpack
+import xml.etree.ElementTree as ET
 
 DEBUG = False
 
@@ -9,43 +16,66 @@ def main():
         patch = sys.argv[2]
     else:
         filename = 'chelovek_v_futlyare_sbornik_.epub'
-        patch = 'testbook.xml'
-    path = str(uuid.uuid4())
-    os.mkdir(path)
+        patch = 'testbook.json'
+    if os.path.isdir('temp/'):
+        shutil.rmtree('temp/')
+        os.mkdir('temp/')
 
     try:
-        process(['unzip', filename, '-d' + path])
-        content = find_content(path + '/META-INF/container.xml')
-        metadata_request = path + '/' + content
-        step_one = unpack.metadata_list(metadata_request)
-        step_two = unpack.year_and_id_clean(step_one, path)
-        fix = metadata_content(step_two, patch)
-        metadata = elem_constr(fix)
-        add_content = metadata_uncover(metadata_request)
-        fix_add = fix_add_content(add_content, metadata_request[:metadata_request.rfind('/')+1])
-        result = output(metadata, fix_add)
+        process(['unzip', filename, '-d' + 'temp'])
+        content = unpack.find_content('temp/META-INF/container.xml')
+        metadata_request = 'temp/' + content
+        book_xml_string = unpack.get_xml_string(metadata_request)
+        json_str = read_file(patch)
+        result, files_to_delete = make_book_xml(book_xml_string, json_str)
 
-        out = open(path + '/' + content, 'w')
+        try:
+            delete_files(files_to_delete, content)
+        except Exception as exept:
+            print >> sys.stderr, 'Error occured', exept
+
+        out = open('temp/' + content, 'w')
         try:
             out.write(result)
         finally:
             out.close()
-        process(['zip', '-r', '../' + path, 'mimetype', 'META-INF', 'OEBPS'], cwd=path)
+        process(['zip', '-r', '../temp', 'mimetype', 'META-INF', 'OEBPS'], cwd='temp/')
 
         if len(sys.argv) > 3:
-            os.rename(path + '.zip', sys.argv[3] + '.epub')
+            os.rename('temp.zip', sys.argv[3] + '.epub')
         else:
-            os.rename(path + '.zip', 'new_' + filename)
+            os.rename('temp.zip', 'new_' + filename)
 
     finally:
         if not DEBUG:
-            if os.path.isdir(path):
-                shutil.rmtree(path)
+            if os.path.isdir('temp/'):
+                shutil.rmtree('temp/')
 
 
-def metadata_uncover(path):
-    tree = ET.ElementTree(file=path)
-    root = tree.getroot()
+def read_file(filename, encoding='utf-8'):
+    patch_file = open(filename)
+    try:
+        return patch_file.read().decode(encoding)
+    finally:
+        patch_file.close()
+
+
+def make_book_xml(old_xml_str, json_str):
+    root = ET.fromstring(old_xml_str)
+    patch = json.loads(json_str)
+    metadata = elem_constr(patch)
+    add_content, cover_path = metadata_uncover(root)
+    fix_add, xhtml_path, fonts_paths = fix_add_content(add_content)
+
+    files_to_delete = [cover_path, xhtml_path]
+    for item in fonts_paths:
+        files_to_delete.append(item)
+
+    new_xml_str = output(metadata, fix_add)
+    return new_xml_str, files_to_delete
+
+
+def metadata_uncover(root):
     add_content = []
 
     for child in root:
@@ -56,23 +86,20 @@ def metadata_uncover(path):
         elif 'manifest' in child.tag:
             for elem in list(child):
                 if elem.attrib['id'] == meta.attrib['content']:
-                    if os.path.exists(path[:path.rfind('/')+1] + elem.attrib['href']):
-                        os.remove(path[:path.rfind('/')+1] + elem.attrib['href'])
+                    cover_path = elem.attrib['href']
                     child.remove(elem)
             add_content.append(child)
         else:
             add_content.append(child)
 
-    return add_content
+    return add_content, cover_path
 
 
-def fix_add_content(content, path):
+def fix_add_content(content):
     guide_uncover, cover = guide(content)
-    manifest_uncover = manifest(guide_uncover, cover, path)
+    manifest_uncover, xhtml_path, fonts_paths = manifest(guide_uncover, cover)
     add_content = spine(manifest_uncover, cover)
-    if os.path.exists(path + 'fonts'):
-        shutil.rmtree(path + 'fonts')
-    return add_content
+    return add_content, xhtml_path, fonts_paths
 
 
 def guide(content):
@@ -86,17 +113,21 @@ def guide(content):
     return content, cover
 
 
-def manifest(content, cover, path):
+def manifest(content, cover):
+    fonts_paths = []
     for piece in content:
         if 'manifest' in piece.tag:
             for elem in list(piece):
+
                 if elem.attrib['media-type'] == 'application/x-font-ttf':
+                    fonts_paths.append(elem.attrib['href'])
                     piece.remove(elem)
+
                 elif elem.attrib['id'] == cover['title']:
-                    if os.path.exists(path + elem.attrib['href']):
-                        os.remove(path + elem.attrib['href'])
+                    xhtml_path = elem.attrib['href']
                     piece.remove(elem)
-    return content
+
+    return content, xhtml_path, fonts_paths
 
 
 def spine(content, cover):
@@ -108,45 +139,34 @@ def spine(content, cover):
     return content
 
 
-def elem_constr(result):
-    elements = []
-    for key in result:
-        element = ET.Element('dc:' + key)
-        if key == 'creator':
-            for value in result[key]:
-                if 'display' in value:
-                    element.text = value[8:]
+def delete_files(files_to_delete, path):
+    cwd = 'temp/' + path[:path.rfind('/') + 1]
+    for item in files_to_delete:
+        os.remove(cwd + item)
+
+
+def elem_constr(metajson):
+    metadata = ET.Element(u'metadata')
+    metadata.attrib = {u'xmlns': u'http://www.idpf.org/2007/opf', u'xmlns:dc': u'http://purl.org/dc/elements/1.1/'}
+    for key in metajson:
+        element = ET.Element(u'dc:' + key)
+        if key == u'creator':
+            for inner_key in metajson[key]:
+                if inner_key == u'display':
+                    element.text = metajson[key][inner_key]
+                elif inner_key == u'sort':
+                    element.attrib = {u'p6:file-as': metajson[key][inner_key],
+                                      u'xmlns:p6': u'http://www.idpf.org/2007/opf'}
                 else:
-                    element.attrib = 'p6:file-as="' + value[5:] + '" xmlns:p6="http://www.idpf.org/2007/opf"'
+                    raise Exception(u'Unexpected inner key %s' % key)
+
         else:
-            for value in result[key]:
-                if key == 'identifier':
-                    element.attrib = 'id="Zero"'
-                element.text = value
-        elements.append(element)
-    return elements
-
-
-def metadata_content(original, patch):
-    tree = ET.parse(patch)
-    root = tree.getroot()
-    for child in root:
-        if child.text:
-            original[child.tag] = [child.text]
-        else:
-            original[child.tag] = []
-            for piece in child:
-                original[child.tag].append(piece.tag + ':' + piece.text)
-    return original
-
-
-def find_content(container):
-    tree = ET.parse(container)
-    root = tree.getroot()
-    for child in root.iter():
-        if 'full-path' in child.attrib:
-            content = child.attrib['full-path']
-            return content
+            element.text = unicode(metajson[key])
+        metadata.append(element)
+    if not DEBUG:
+        identifier = ET.SubElement(metadata, u'dc:identifier', {u'id': u'Zero'})
+        identifier.text = unicode(uuid.uuid4())
+    return metadata
 
 
 def process(arg, cwd=None):
@@ -157,28 +177,17 @@ def process(arg, cwd=None):
         raise Exception(err)
 
 
-def output(elements, add_content=None):
-    metas = []
-    for element in elements:
-        if element.attrib:
-            meta = '    <' + element.tag + ' ' + element.attrib + '>'
-        else:
-            meta = '    <' + element.tag + '>'
-        meta += element.text
-        meta += '</' + element.tag + '>\n'
-        metas.append(meta)
+def output(metadata, add_content):
+    result = '<?xml version="1.0"?>\n'
 
-    result = '<?xml version="1.0"?>\n<package version="2.0" ' \
-             'xmlns="http://www.idpf.org/2007/opf" unique-identifier="Zero">\n  ' \
-             '<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+    package = ET.Element(u'package')
+    package.attrib = {u'version': u'2.0', u'xmlns': u'http://www.idpf.org/2007/opf', u'unique-identifier': u'Zero'}
+    package.append(metadata)
 
-    for i in metas:
-        result += i.encode('utf-8')
-    result += '  </metadata>\n  '
-    if add_content:
-        for piece in add_content:
-            result += ET.tostring(piece)
-    result += '</package>'
+    for i in add_content:
+        package.append(i)
+    result += ET.tostring(package, encoding='utf-8')
+
     return result
 
 
