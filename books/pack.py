@@ -4,10 +4,11 @@ import subprocess
 import uuid
 import sys
 import json
+import epub
 import unpack
 import xml.etree.ElementTree as ET
 
-DEBUG = True
+DEBUG = False
 
 
 def main():
@@ -17,28 +18,30 @@ def main():
     else:
         filename = 'chelovek_v_futlyare_sbornik_.epub'
         patch = 'testbook.json'
+
     if os.path.isdir('temp/'):
         shutil.rmtree('temp/')
         os.mkdir('temp/')
 
     try:
-        process(['unzip', filename, '-d' + 'temp'])
-        content = unpack.find_content('temp/META-INF/container.xml')
-        metadata_request = 'temp/' + content
-        book_xml_string = unpack.get_xml_string(metadata_request)
-        json_str = read_file(patch)
-        result, files_to_delete = make_book_xml(book_xml_string, json_str)
+        work_directory = 'temp'
+        process(['unzip', filename, '-d' + work_directory])
+        container_path = os.path.join(work_directory, 'META-INF', 'container.xml')
+        metadata_path = os.path.join(work_directory, epub.find_content(container_path))
+        files_directory = os.path.dirname(metadata_path)
+        new_xml_string, files_to_delete = make_book_xml(epub.read_file(metadata_path, encoding=None), epub.read_file(patch))
 
         try:
-            delete_files(files_to_delete, content)
-        except Exception as exept:
-            print >> sys.stderr, 'Error occured', exept
+            delete_files(files_to_delete, files_directory, work_directory)
+        except Exception as e:
+            print >> sys.stderr, 'Error occured: ', e
 
-        out = open('temp/' + content, 'w')
+        out = open(metadata_path, 'w')
         try:
-            out.write(result)
+            out.write(new_xml_string)
         finally:
             out.close()
+
         process(['zip', '-r', '../temp', 'mimetype', 'META-INF', 'OEBPS'], cwd='temp/')
 
         if len(sys.argv) > 3:
@@ -52,12 +55,18 @@ def main():
                 shutil.rmtree('temp/')
 
 
-def read_file(filename, encoding='utf-8'):
-    patch_file = open(filename)
+def safe_main():
+    if DEBUG:
+        main()
+        sys.exit(0)
+
     try:
-        return patch_file.read().decode(encoding)
-    finally:
-        patch_file.close()
+        main()
+    except Exception as e:
+        print >> sys.stderr, 'Error occured', e
+        sys.exit(1)
+
+    sys.exit(0)
 
 
 def make_book_xml(old_xml_str, json_str):
@@ -79,7 +88,7 @@ def metadata_uncover(root):
     add_content = []
 
     for child in root:
-        if 'metadata' in child.tag:
+        if child.tag == '{http://www.idpf.org/2007/opf}metadata':
             for piece in child:
                 if 'meta' in piece.tag:
                     meta = piece
@@ -139,17 +148,16 @@ def spine(content, cover):
     return content
 
 
-def delete_files(files_to_delete, path):
-    cwd = 'temp/' + path[:path.rfind('/') + 1]
+def delete_files(files_to_delete, files_directory, work_directory):
     for item in files_to_delete:
-        os.remove(cwd + item)
-    list_of_files = os.walk(cwd)
-    for item in list(list_of_files):
-        if not item[2]:
+        os.remove(os.path.join(files_directory, item))
+    list_of_files = list(os.walk(work_directory))
+    for dirpath, dirnames, filenames in list_of_files:
+        if len(filenames) == 0:
             try:
-                os.rmdir(item[0])
-            except Exception as j:
-                print >> sys.stderr, 'Error occured', j
+                os.rmdir(dirpath)
+            except Exception as e:
+                print >> sys.stderr, 'Error occured', e
 
 
 def elem_constr(metajson):
@@ -199,10 +207,4 @@ def output(metadata, add_content):
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as e:
-        print >> sys.stderr, 'Error occured', e
-        sys.exit(1)
-
-    sys.exit(0)
+    safe_main()

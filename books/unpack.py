@@ -6,6 +6,7 @@ import sys
 import json
 import xml.etree.ElementTree as ET
 # -*- coding: UTF-8 -*-
+from epub import find_content, read_file
 
 DEBUG = False
 
@@ -22,7 +23,7 @@ def main():
         process(['unzip', filename, '-d', 'temp/'])
         content = find_content('temp/META-INF/container.xml')
         metadata_request = 'temp/' + content
-        book_xml_string = get_xml_string(metadata_request)
+        book_xml_string = read_file(metadata_request)
         result_json = parse_book_xml(book_xml_string)
         out = open('testbook.json', 'w')
         try:
@@ -33,12 +34,6 @@ def main():
         if not DEBUG:
             if os.path.isdir('temp/'):
                 shutil.rmtree('temp/')
-
-
-def get_xml_string(xml_path):
-    tree = ET.ElementTree(file=xml_path)
-    root = tree.getroot()
-    return ET.tostring(root)
 
 
 def parse_book_xml(book_xml_string):
@@ -134,15 +129,6 @@ def output(elements):
         if len(main_dir[key]) == 1:
             main_dir[key] = main_dir[key][0]
     return main_dir
-
-
-def find_content(container):
-    tree = ET.parse(container)
-    root = tree.getroot()
-    for child in root.iter():
-        if 'full-path' in child.attrib:
-            content = child.attrib['full-path']
-            return content
 
 
 def process(arg, cwd=None):
