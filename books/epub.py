@@ -27,10 +27,10 @@ class BookDescr(object):
         self.root = None
 
     def load(self, xml_str):
-        self.root = ET.parse(xml_str)
+        self.root = ET.fromstring(xml_str)
 
     def save(self):
-        return ET.tostring(self.root)
+        return ET.tostring(self.root, 'utf-8')
 
     def remove_cover_pages(self):
         """
@@ -56,7 +56,7 @@ class BookDescr(object):
     # Common operations
 
     def find_elements_by_attr(self, parent, tag_name, attr_name, attr_value):
-        return self.filter_elements_by_attr(self.find_elements_by_attr(parent, tag_name), attr_name, attr_value)
+        return self.filter_elements_by_attr(self.find_elements_by_tag(parent, tag_name), attr_name, attr_value)
 
     def find_elements_by_tag(self, parent, tag_name):
         elements = []
@@ -84,7 +84,7 @@ class BookDescr(object):
 
     def get_metadata_element(self):
         for elem in self.root:
-            if elem.tag == u'metadata':
+            if elem.tag == u'{http://www.idpf.org/2007/opf}metadata':
                 return elem
 
     def find_metadata_items_by_name(self, name_):
@@ -92,7 +92,7 @@ class BookDescr(object):
         Finds metadata item by its name
         Returns element
         """
-        return self.find_elements_by_attr(self.get_metadata_element(), u'{http://www.idpf.org/2007/opf}item', u'name', name_)
+        return self.find_elements_by_attr(self.get_metadata_element(), u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
 
     def remove_items_by_metadata_name(self, name_):
         """
@@ -114,11 +114,11 @@ class BookDescr(object):
 
     def get_manifest_element(self):
         for elem in self.root:
-            if elem.tag == u'manifest':
+            if elem.tag == u'{http://www.idpf.org/2007/opf}manifest':
                 return elem
 
     def find_manifest_item(self, id_):
-        return self.find_element_by_attr(self.get_manifest_element(), u'{http://www.idpf.org/2007/opf}metadata', u'id', id_)
+        return self.find_element_by_attr(self.get_manifest_element(), u'{http://www.idpf.org/2007/opf}item', u'id', id_)
 
     def find_manifest_items_by_media(self, mediatype):
         """
@@ -157,7 +157,7 @@ class BookDescr(object):
 
     def get_spine_element(self):
         for elem in self.root:
-            if elem.tag == u'spine':
+            if elem.tag == u'{http://www.idpf.org/2007/opf}spine':
                 return elem
 
     def find_spine_item(self, id_):
@@ -172,7 +172,7 @@ class BookDescr(object):
 
     def get_guide_element(self):
         for elem in self.root:
-            if elem.tag == u'guide':
+            if elem.tag == u'{http://www.idpf.org/2007/opf}guide':
                 return elem
 
     def find_guide_items_by_type(self, type_):

@@ -1,7 +1,31 @@
 import pack
 import unpack
+import epub
 import xml.etree.ElementTree as ET
 from unittest import TestCase
+
+class TestEpub(TestCase):
+    def test_epub_001(self):
+        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], epub.BookDescr.remove_cover_images)
+
+    def test_epub_002(self):
+        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_pages.xml', ['cover.xhtml'], epub.BookDescr.remove_cover_pages)
+
+    def test_epub_003(self):
+        self.do_epub_test('meta3.xml', 'new_meta3_no_fonts.xml', ['fonts/LiberationSerif-Regular.ttf', 'fonts/LiberationSerif-Italic.ttf', 'fonts/LiberationSerif-Bold.ttf',
+                                                                  'fonts/LiberationSerif-BoldItalic.ttf'], epub.BookDescr.remove_fonts)
+
+    def do_epub_test(self, xml_path_to_work_with, xml_path_to_expect_from, expected_filepaths, function_to_test):
+        test_object = epub.BookDescr()
+        file_to_work_with = open(xml_path_to_work_with)
+        str_to_work_with = file_to_work_with.read()
+        test_object.load(str_to_work_with)
+        produced_filepaths = function_to_test(test_object)
+        tree = ET.ElementTree(file=xml_path_to_expect_from)
+        expected_root = tree.getroot()
+        str_to_expect_from = ET.tostring(expected_root, 'utf-8')
+        self.assertEqual(test_object.save(), str_to_expect_from)
+        self.assertEqual(produced_filepaths, expected_filepaths)
 
 
 class TestUnpack(TestCase):
@@ -13,13 +37,11 @@ class TestUnpack(TestCase):
         tree = ET.ElementTree(file=xml_path)
         root = tree.getroot()
         result_produced = unpack.parse_book_xml(ET.tostring(root))
-        print result_produced
         json_file = open(json_path)
         try:
             result_expected = json_file.read()
         finally:
             json_file.close()
-        print result_expected
         self.assertEqual(result_produced, result_expected)
 
 

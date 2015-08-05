@@ -5,7 +5,6 @@ import uuid
 import sys
 import json
 import epub
-import unpack
 import xml.etree.ElementTree as ET
 
 DEBUG = False
