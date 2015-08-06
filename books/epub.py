@@ -1,10 +1,11 @@
 import uuid
 import json
-from xml.etree import ElementTree as ET
+import find_elements
+from xml.etree import ElementTree
 
 
 def find_content(container):
-    tree = ET.parse(container)
+    tree = ElementTree.parse(container)
     root = tree.getroot()
     for child in root.iter():
         if 'full-path' in child.attrib:
@@ -29,10 +30,10 @@ class BookDescr(object):
         self.root = None
 
     def load(self, xml_str):
-        self.root = ET.fromstring(xml_str)
+        self.root = ElementTree.fromstring(xml_str)
 
     def save(self):
-        return ET.tostring(self.root, 'utf-8')
+        return ElementTree.tostring(self.root, 'utf-8')
 
     def remove_cover_pages(self):
         """
@@ -47,33 +48,6 @@ class BookDescr(object):
         Return file paths
         """
         return self.remove_items_by_manifest_mediatype(u'application/x-font-ttf')
-
-    # Common operations # TODO: Move to xml module
-
-    def find_elements_by_attr(self, parent, tag_name, attr_name, attr_value):
-        return self.filter_elements_by_attr(self.find_elements_by_tag(parent, tag_name), attr_name, attr_value)
-
-    def find_elements_by_tag(self, parent, tag_name):
-        elements = []
-        for elem in parent:
-            if elem.tag == tag_name:
-                elements.append(elem)
-        return elements
-
-    def filter_elements_by_attr(self, elements_to_filter, attr_name, attr_value):
-        elements = []
-        for elem in elements_to_filter:
-            if elem.attrib[attr_name] == attr_value:
-                elements.append(elem)
-        return elements
-
-    def find_element_by_attr(self, parent, tag_name, attr_name, attr_value):
-        result = self.find_elements_by_attr(parent, tag_name, attr_name, attr_value)
-        if len(result) == 0:
-            raise Exception(u'Tag %s not found' % tag_name)
-        if len(result) > 1:
-            raise Exception(u'Found multiple %s tags' % tag_name)
-        return result[0]
 
     # Metadata operations
 
@@ -97,14 +71,14 @@ class BookDescr(object):
                 return elem
 
     def find_manifest_item(self, id_):
-        return self.find_element_by_attr(self.get_manifest_element(), u'{http://www.idpf.org/2007/opf}item', u'id', id_)
+        return find_elements.one_by_attr(self.get_manifest_element(), u'{http://www.idpf.org/2007/opf}item', u'id', id_)
 
     def find_manifest_items_by_media(self, mediatype):
         """
         Finds manifest items by mediatype
         Returns elements
         """
-        return self.find_elements_by_attr(self.get_manifest_element(), u'{http://www.idpf.org/2007/opf}item', u'media-type', mediatype)
+        return find_elements.some_by_attr(self.get_manifest_element(), u'{http://www.idpf.org/2007/opf}item', u'media-type', mediatype)
 
     def remove_manifest_items(self, ids):
         """
@@ -140,7 +114,7 @@ class BookDescr(object):
                 return elem
 
     def find_spine_item(self, id_):
-        return self.find_element_by_attr(self.get_spine_element(), u'{http://www.idpf.org/2007/opf}itemref', u'idref', id_)
+        return find_elements.one_by_attr(self.get_spine_element(), u'{http://www.idpf.org/2007/opf}itemref', u'idref', id_)
 
     def remove_spine_items(self, ids):
         spine = self.get_spine_element()
@@ -155,7 +129,7 @@ class BookDescr(object):
                 return elem
 
     def find_guide_items_by_type(self, type_):
-        return self.find_elements_by_attr(self.get_guide_element(), u'{http://www.idpf.org/2007/opf}reference', u'type', type_)
+        return find_elements.some_by_attr(self.get_guide_element(), u'{http://www.idpf.org/2007/opf}reference', u'type', type_)
 
     def remove_items_by_guide_type(self, type_):
         """
@@ -198,7 +172,7 @@ class Metadata(object):
         Finds metadata item by its name
         Returns element
         """
-        return self.descr.find_elements_by_attr(self.meta, u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
+        return find_elements.some_by_attr(self.meta, u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
 
     def remove_items_by_name(self, name_):
         """
@@ -223,11 +197,11 @@ class Metadata(object):
         """
         metajson = json.loads(read_file(filepath))
 
-        new_metadata = ET.Element(u'metadata')
+        new_metadata = ElementTree.Element(u'metadata')
         new_metadata.attrib = {u'xmlns': u'http://www.idpf.org/2007/opf', u'xmlns:dc': u'http://purl.org/dc/elements/1.1/'}
 
         for key in metajson:
-            element = ET.Element(u'dc:' + key)
+            element = ElementTree.Element(u'dc:' + key)
             if key == u'creator':
                 for inner_key in metajson[key]:
                     if inner_key == u'display':
@@ -242,7 +216,7 @@ class Metadata(object):
                 element.text = unicode(metajson[key])
             new_metadata.append(element)
 
-        identifier = ET.SubElement(new_metadata, u'dc:identifier', {u'id': u'Zero'})
+        identifier = ElementTree.SubElement(new_metadata, u'dc:identifier', {u'id': u'Zero'})
         identifier.text = unicode(uuid.uuid4())
 
         self.meta = new_metadata
