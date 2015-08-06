@@ -1,3 +1,5 @@
+import uuid
+import json
 from xml.etree import ElementTree as ET
 
 
@@ -39,13 +41,6 @@ class BookDescr(object):
         """
         return self.remove_items_by_guide_type(u'cover')
 
-    def remove_cover_images(self):
-        """
-        Removes cover images elements
-        Return file paths
-        """
-        return self.remove_items_by_metadata_name(u'cover')
-
     def remove_fonts(self):
         """
         Removes fonts elements
@@ -82,33 +77,20 @@ class BookDescr(object):
 
     # Metadata operations
 
-    def get_metadata_element(self):
+    def get_metadata(self, element=False):
         for elem in self.root:
             if elem.tag == u'{http://www.idpf.org/2007/opf}metadata':
-                return elem
+                if element:
+                    return elem
+                else:
+                    metadata = Metadata(elem, self)
+                    return metadata
 
-    def find_metadata_items_by_name(self, name_):
-        """
-        Finds metadata item by its name
-        Returns element
-        """
-        return self.find_elements_by_attr(self.get_metadata_element(), u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
-
-    def remove_items_by_metadata_name(self, name_):
-        """
-        Removes items from everywhere finding them in metadata by name.
-        Returns filepaths from removed items.
-        """
-        metadata = self.get_metadata_element()
-
-        items = self.find_metadata_items_by_name(name_)
-
-        ids = [item.attrib[u'content'] for item in items]
-
-        for item in items:
-            metadata.remove(item)
-
-        return self.remove_manifest_items(ids)
+    def set_metadata_element(self, new_metadata):
+        for elem in list(self.root):
+            if elem.tag == u'{http://www.idpf.org/2007/opf}metadata':
+                self.root.remove(elem)
+                self.root.insert(0, new_metadata)
 
     # Manifest operations
 
@@ -194,3 +176,98 @@ class BookDescr(object):
 
         self.remove_spine_items(ids)
         return self.remove_manifest_items(ids)
+
+
+class Metadata(object):
+    def __init__(self, meta, descr):
+        if meta.tag == u'{http://www.idpf.org/2007/opf}metadata':
+            self.meta = meta
+        else:
+            raise Exception(u'Unexpected element %s' % meta)
+        if type(descr) is BookDescr:
+            self.descr = descr
+        else:
+            raise Exception(u'Unexpected type of data %s' % type(descr))
+
+    def remove_cover_images(self):
+        """
+        Removes cover images elements
+        Return file paths
+        """
+        return self.remove_items_by_metadata_name(u'cover')
+
+    def find_metadata_items_by_name(self, name_):
+        """
+        Finds metadata item by its name
+        Returns element
+        """
+        return self.descr.find_elements_by_attr(self.descr.get_metadata(element=True), u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
+
+    def remove_items_by_metadata_name(self, name_):
+        """
+        Removes items from everywhere finding them in metadata by name.
+        Returns filepaths from removed items.
+        """
+        metadata = self.descr.get_metadata(element=True)
+
+        items = self.find_metadata_items_by_name(name_)
+
+        ids = [item.attrib[u'content'] for item in items]
+
+        for item in items:
+            metadata.remove(item)
+
+        return self.descr.remove_manifest_items(ids)
+
+    def load_json(self, filepath):
+        """
+        :param filepath:
+        :return: metadata element
+        """
+        metajson = json.loads(read_file(filepath))
+
+        new_metadata = ET.Element(u'metadata')
+        new_metadata.attrib = {u'xmlns': u'http://www.idpf.org/2007/opf', u'xmlns:dc': u'http://purl.org/dc/elements/1.1/'}
+
+        for key in metajson:
+            element = ET.Element(u'dc:' + key)
+            if key == u'creator':
+                for inner_key in metajson[key]:
+                    if inner_key == u'display':
+                        element.text = metajson[key][inner_key]
+                    elif inner_key == u'sort':
+                        element.attrib = {u'p6:file-as': metajson[key][inner_key],
+                                          u'xmlns:p6': u'http://www.idpf.org/2007/opf'}
+                    else:
+                        raise Exception(u'Unexpected inner key %s' % key)
+
+            else:
+                element.text = unicode(metajson[key])
+            new_metadata.append(element)
+
+        identifier = ET.SubElement(new_metadata, u'dc:identifier', {u'id': u'Zero'})
+        identifier.text = unicode(uuid.uuid4())
+
+        self.descr.set_metadata_element(new_metadata)
+
+"""
+tree = ET.ElementTree(file='Test/meta1.xml')
+root = tree.getroot()
+a = BookDescr()
+a.load(ET.tostring(root))
+print a.get_metadata(element=True)
+print a
+
+b = Metadata(a.get_metadata(element=True), a)
+print b.meta
+print b.descr
+
+b.descr.remove_cover_pages()
+b.descr.remove_fonts()
+
+print b.descr.get_metadata().remove_cover_images()
+b.load_json('Test/meta1.json')
+
+out = open('Test/test1.xml', 'w')
+out.write(b.descr.save())
+"""

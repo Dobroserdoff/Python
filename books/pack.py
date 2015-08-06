@@ -7,7 +7,7 @@ import json
 import epub
 import xml.etree.ElementTree as ET
 
-DEBUG = False
+DEBUG = True
 
 
 def main():
