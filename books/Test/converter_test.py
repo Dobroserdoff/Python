@@ -7,7 +7,7 @@ from unittest import TestCase
 
 class TestEpub(TestCase):
     def test_epub_001(self):
-        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], lambda descr: descr.remove_cover_images(), dscr=False)
+        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], lambda meta: meta.remove_cover_images(), dscr=False)
 
     def test_epub_002(self):
         self.do_epub_test('meta3.xml', 'new_meta3_no_cover_pages.xml', ['cover.xhtml'], lambda descr: descr.remove_cover_pages(), dscr=True)
@@ -17,23 +17,15 @@ class TestEpub(TestCase):
         self.do_epub_test('meta3.xml', 'new_meta3_no_fonts.xml', expected_fonts, lambda descr: descr.remove_fonts(), dscr=True)
 
     def do_epub_test(self, xml_path_to_work_with, xml_path_to_expect_from, expected_filepaths, test_function, dscr):
-        produced_tree = ET.ElementTree(file=xml_path_to_work_with)
-        produced_root = produced_tree.getroot()
-        for elem in produced_root:
-            if elem.tag == u'{http://www.idpf.org/2007/opf}metadata':
-                metadata = elem
-
         test_dscr = epub.BookDescr()
         file_to_work_with = open(xml_path_to_work_with)
         str_to_work_with = file_to_work_with.read()
         test_dscr.load(str_to_work_with)
 
-        test_meta = epub.Metadata(metadata, test_dscr)
-
         if dscr:
             produced_filepaths = test_function(test_dscr)
         else:
-            produced_filepaths = test_function(test_meta)
+            produced_filepaths = test_function(test_dscr.get_metadata())
 
         expected_tree = ET.ElementTree(file=xml_path_to_expect_from)
         expected_root = expected_tree.getroot()

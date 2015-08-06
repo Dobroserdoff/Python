@@ -77,14 +77,11 @@ class BookDescr(object):
 
     # Metadata operations
 
-    def get_metadata(self, element=False):
+    def get_metadata(self):
         for elem in self.root:
             if elem.tag == u'{http://www.idpf.org/2007/opf}metadata':
-                if element:
-                    return elem
-                else:
-                    metadata = Metadata(elem, self)
-                    return metadata
+                metadata = Metadata(elem, self)
+                return metadata
 
     def set_metadata_element(self, new_metadata):
         for elem in list(self.root):
@@ -194,23 +191,23 @@ class Metadata(object):
         Removes cover images elements
         Return file paths
         """
-        return self.remove_items_by_metadata_name(u'cover')
+        return self.remove_items_by_name(u'cover')
 
-    def find_metadata_items_by_name(self, name_):
+    def find_items_by_name(self, name_):
         """
         Finds metadata item by its name
         Returns element
         """
-        return self.descr.find_elements_by_attr(self.descr.get_metadata(element=True), u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
+        return self.descr.find_elements_by_attr(self.meta, u'{http://www.idpf.org/2007/opf}meta', u'name', name_)
 
-    def remove_items_by_metadata_name(self, name_):
+    def remove_items_by_name(self, name_):
         """
         Removes items from everywhere finding them in metadata by name.
         Returns filepaths from removed items.
         """
-        metadata = self.descr.get_metadata(element=True)
+        metadata = self.meta
 
-        items = self.find_metadata_items_by_name(name_)
+        items = self.find_items_by_name(name_)
 
         ids = [item.attrib[u'content'] for item in items]
 
@@ -248,26 +245,5 @@ class Metadata(object):
         identifier = ET.SubElement(new_metadata, u'dc:identifier', {u'id': u'Zero'})
         identifier.text = unicode(uuid.uuid4())
 
+        self.meta = new_metadata
         self.descr.set_metadata_element(new_metadata)
-
-"""
-tree = ET.ElementTree(file='Test/meta1.xml')
-root = tree.getroot()
-a = BookDescr()
-a.load(ET.tostring(root))
-print a.get_metadata(element=True)
-print a
-
-b = Metadata(a.get_metadata(element=True), a)
-print b.meta
-print b.descr
-
-b.descr.remove_cover_pages()
-b.descr.remove_fonts()
-
-print b.descr.get_metadata().remove_cover_images()
-b.load_json('Test/meta1.json')
-
-out = open('Test/test1.xml', 'w')
-out.write(b.descr.save())
-"""
