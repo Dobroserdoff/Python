@@ -7,31 +7,31 @@ from unittest import TestCase
 
 class TestEpub(TestCase):
     def test_epub_001(self):
-        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], lambda meta: meta.remove_cover_images(), dscr=False)
+        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], lambda meta: meta.remove_cover_images(), is_descr=False)
 
     def test_epub_002(self):
-        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_pages.xml', ['cover.xhtml'], lambda descr: descr.remove_cover_pages(), dscr=True)
+        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_pages.xml', ['cover.xhtml'], lambda descr: descr.remove_cover_pages(), is_descr=True)
 
     def test_epub_003(self):
         expected_fonts = ['fonts/LiberationSerif-Regular.ttf', 'fonts/LiberationSerif-Italic.ttf', 'fonts/LiberationSerif-Bold.ttf', 'fonts/LiberationSerif-BoldItalic.ttf']
-        self.do_epub_test('meta3.xml', 'new_meta3_no_fonts.xml', expected_fonts, lambda descr: descr.remove_fonts(), dscr=True)
+        self.do_epub_test('meta3.xml', 'new_meta3_no_fonts.xml', expected_fonts, lambda descr: descr.remove_fonts(), is_descr=True)
 
-    def do_epub_test(self, xml_path_to_work_with, xml_path_to_expect_from, expected_filepaths, test_function, dscr):
-        test_dscr = epub.BookDescr()
+    def do_epub_test(self, xml_path_to_work_with, xml_path_to_expect_from, expected_filepaths, test_function, is_descr):
+        descr = epub.BookDescr()
         file_to_work_with = open(xml_path_to_work_with)
         str_to_work_with = file_to_work_with.read()
-        test_dscr.load(str_to_work_with)
+        descr.load(str_to_work_with)
 
-        if dscr:
-            produced_filepaths = test_function(test_dscr)
+        if is_descr:
+            produced_filepaths = test_function(descr)
         else:
-            produced_filepaths = test_function(test_dscr.get_metadata())
+            produced_filepaths = test_function(descr.get_metadata())
 
         expected_tree = ET.ElementTree(file=xml_path_to_expect_from)
         expected_root = expected_tree.getroot()
         str_to_expect_from = ET.tostring(expected_root, 'utf-8')
 
-        self.assertEqual(test_dscr.save(), str_to_expect_from)
+        self.assertEqual(descr.save(), str_to_expect_from)
         self.assertEqual(produced_filepaths, expected_filepaths)
 
 
