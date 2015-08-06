@@ -35,6 +35,14 @@ class BookDescr(object):
     def save(self):
         return ElementTree.tostring(self.root, 'utf-8')
 
+    def remove_cover_images(self):
+        """
+        Removes cover images elements
+        Return file paths
+        """
+        ids = self.get_metadata().remove_items_by_name(u'cover')
+        return self.remove_manifest_items(ids)
+
     def remove_cover_pages(self):
         """
         Removes cover pages elements
@@ -160,13 +168,6 @@ class Metadata(object):
         else:
             raise Exception(u'Unexpected type of data %s' % type(descr))
 
-    def remove_cover_images(self):
-        """
-        Removes cover images elements
-        Return file paths
-        """
-        return self.remove_items_by_name(u'cover')
-
     def find_items_by_name(self, name_):
         """
         Finds metadata item by its name
@@ -188,7 +189,7 @@ class Metadata(object):
         for item in items:
             metadata.remove(item)
 
-        return self.descr.remove_manifest_items(ids)
+        return ids
 
     def load_json(self, filepath):
         """

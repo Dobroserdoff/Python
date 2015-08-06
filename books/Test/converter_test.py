@@ -7,7 +7,7 @@ from unittest import TestCase
 
 class TestEpub(TestCase):
     def test_epub_001(self):
-        test_function = lambda descr, meta: meta.remove_cover_images()
+        test_function = lambda descr, meta: descr.remove_cover_images()
         self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], test_function)
 
     def test_epub_002(self):
