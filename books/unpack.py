@@ -82,13 +82,13 @@ def elem_constr(result):
         while len(result[key]) > 1:
             if len(result[key][0]) > len(result[key][1]):
                 del result[key][1]
-                sys.stdout.write('Shorter duplicate of ' + result[key][0] + ' has been deleted')
+                sys.stdout.write('Shorter duplicate of ' + result[key][0] + ' has been deleted\n')
             elif len(result[key][0]) < len(result[key][1]):
                 del result[key][0]
-                sys.stdout.write('Shorter duplicate of ' + result[key][1] + ' has been deleted')
+                sys.stdout.write('Shorter duplicate of ' + result[key][1] + ' has been deleted\n')
             elif len(result[key][0]) == len(result[key][1]):
                 del result[key][1]
-                sys.stdout.write('Duplicate of ' + result[key][0] + ' has been deleted')
+                sys.stdout.write('Duplicate of ' + result[key][0] + ' has been deleted\n')
         for value in result[key]:
             element = ET.Element(key)
             element.text = value

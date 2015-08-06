@@ -48,7 +48,7 @@ class BookDescr(object):
         """
         return self.remove_items_by_manifest_mediatype(u'application/x-font-ttf')
 
-    # Common operations
+    # Common operations # TODO: Move to xml module
 
     def find_elements_by_attr(self, parent, tag_name, attr_name, attr_value):
         return self.filter_elements_by_attr(self.find_elements_by_tag(parent, tag_name), attr_name, attr_value)
