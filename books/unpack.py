@@ -1,12 +1,10 @@
 import os
 import shutil
-import subprocess
 import uuid
 import sys
 import json
 import xml.etree.ElementTree as ET
 # -*- coding: UTF-8 -*-
-from epub import find_content, read_file
 
 DEBUG = False
 
@@ -129,6 +127,35 @@ def output(elements):
         if len(main_dir[key]) == 1:
             main_dir[key] = main_dir[key][0]
     return main_dir
+
+
+def find_content(container):
+    """
+    Looking through container file to find content file
+    :return: Content file path
+    """
+    tree = ElementTree.parse(container)
+    root = tree.getroot()
+    for child in root.iter():
+        if 'full-path' in child.attrib:
+            content = child.attrib['full-path']
+            return content
+
+
+def read_file(filepath, encoding='utf-8'):
+    """
+    Read data from xml file
+    :return: Unicode
+    """
+    f = open(filepath)
+    try:
+        filedata = f.read()
+        if encoding:
+            return filedata.decode(encoding)
+        else:
+            return filedata
+    finally:
+        f.close()
 
 
 def process(arg, cwd=None):

@@ -1,10 +1,69 @@
+import shutil
 import uuid
+import sys
+import os
 import json
 import find_elements
+import subprocess
+import unpack
 from xml.etree import ElementTree
+
+DEBUG = False
+
+
+def safe_main():
+    if DEBUG:
+        main()
+        sys.exit(0)
+
+    try:
+        main()
+    except Exception as e:
+        print >> sys.stderr, 'Error occured', e
+        sys.exit(1)
+
+    sys.exit(0)
+
+
+def main():
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        patch_out = sys.argv[2]
+        patch_in = sys.argv[3]
+    else:
+        filename = 'geroi_nashego_vremeni.epub'
+        patch_out = 'testbook_out.json'
+        patch_in = 'testbook_in.json'
+
+    try:
+        book = Book()
+        book.load('geroi_nashego_vremeni.epub')
+        result_json = unpack.parse_book_xml(book.get_descr().save())
+
+        out = open(patch_out, 'w')
+        try:
+            out.write(result_json)
+        finally:
+            out.close()
+
+        book.clear()
+        book.get_descr().get_metadata().load_json(patch_in)
+
+        if len(sys.argv) > 4:
+            book.save(sys.argv[4])
+        else:
+            book.save('new_' + filename)
+
+    finally:
+        if not DEBUG:
+            book.close()
 
 
 def find_content(container):
+    """
+    Looking through container file to find content file
+    :return: Content file path
+    """
     tree = ElementTree.parse(container)
     root = tree.getroot()
     for child in root.iter():
@@ -14,6 +73,10 @@ def find_content(container):
 
 
 def read_file(filepath, encoding='utf-8'):
+    """
+    Read data from xml file
+    :return: Unicode
+    """
     f = open(filepath)
     try:
         filedata = f.read()
@@ -23,6 +86,26 @@ def read_file(filepath, encoding='utf-8'):
             return filedata
     finally:
         f.close()
+
+
+def process(arg, cwd=None):
+    proc = subprocess.Popen(arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+    out, err = proc.communicate()
+    returncode = proc.returncode
+    if returncode != 0:
+        raise Exception(err)
+
+
+def delete_files(delete_paths, files_directory, work_directory):
+    for item in delete_paths:
+        os.remove(os.path.join(files_directory, item))
+    list_of_files = list(os.walk(work_directory))
+    for dirpath, dirnames, filenames in list_of_files:
+        if len(filenames) == 0:
+            try:
+                os.rmdir(dirpath)
+            except Exception as e:
+                print >> sys.stderr, 'Error occured', e
 
 
 class BookDescr(object):
@@ -66,6 +149,9 @@ class BookDescr(object):
                 return metadata
 
     def set_metadata_element(self, new_metadata):
+        """
+        Replace metadata with new_metadata content
+        """
         for elem in list(self.root):
             if elem.tag == u'{http://www.idpf.org/2007/opf}metadata':
                 self.root.remove(elem)
@@ -106,8 +192,6 @@ class BookDescr(object):
         Removes items from everywhere finding them in manifest by media-type.
         Returns filepaths from removed items.
         """
-        manifest = self.get_manifest_element()
-
         items = self.find_manifest_items_by_media(mediatype_)
 
         ids = [item.attrib[u'id'] for item in items]
@@ -193,8 +277,7 @@ class Metadata(object):
 
     def load_json(self, filepath):
         """
-        :param filepath:
-        :return: metadata element
+        Creates new metadata using data from .json file
         """
         metajson = json.loads(read_file(filepath))
 
@@ -222,3 +305,62 @@ class Metadata(object):
 
         self.meta = new_metadata
         self.descr.set_metadata_element(new_metadata)
+
+
+class Book(object):
+    def __init__(self):
+        self.path = str(uuid.uuid4()) + '/'
+        self._descr = BookDescr()
+
+    def load(self, filename):
+        """
+        Load data from file to Book object including self.descr instance method
+        """
+        os.mkdir(self.path)
+        process(['unzip', filename, '-d', self.path])
+        content_unicode = read_file(os.path.join(self.path, self.get_content_path()))
+        self._descr.load(str(content_unicode.encode('utf-8')))
+
+    def get_descr(self):
+        return self._descr
+
+    def save(self, filename):
+        """
+        Creates new .epub file
+        """
+        out = open(os.path.join(self.path, self.get_content_path()), 'w')
+        try:
+            out.write(self._descr.save())
+        finally:
+            out.close()
+        process(['zip', '-r', '../' + self.path[:-1], 'mimetype', 'META-INF', 'OEBPS'], cwd=self.path)
+        os.rename(self.path[:-1] + '.zip', filename)
+
+    def clear(self):
+        """
+        Clear content and delete all unneccesary files inside Book folder
+        """
+        images_path = self.get_descr().remove_cover_images()
+        pages_path = self.get_descr().remove_cover_pages()
+        fonts_path = self.get_descr().remove_fonts()
+        delete_paths = images_path + pages_path + fonts_path
+        files_directory = os.path.dirname(os.path.join(self.path, self.get_content_path()))
+
+        try:
+            delete_files(delete_paths, files_directory, self.path)
+        except Exception as e:
+            print >> sys.stderr, 'Error occured: ', e
+
+    def close(self):
+        if os.path.isdir(self.path):
+                shutil.rmtree(self.path)
+
+    def get_content_path(self):
+        """
+        :return: Content file path
+        """
+        return find_content(os.path.join(self.path, 'META-INF', 'container.xml'))
+
+
+if __name__ == '__main__':
+    safe_main()

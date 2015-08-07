@@ -6,20 +6,20 @@ from unittest import TestCase
 
 
 class TestEpub(TestCase):
-    def test_epub_001(self):
+    def test_bookdescr_remove_images(self):
         test_function = lambda descr, meta: descr.remove_cover_images()
-        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], test_function)
+        self.do_bookdescr_test('meta3.xml', 'new_meta3_no_cover_images.xml', ['images/cover.jpg'], test_function)
 
-    def test_epub_002(self):
+    def test_bookdescr_remove_pages(self):
         test_function = lambda descr, meta: descr.remove_cover_pages()
-        self.do_epub_test('meta3.xml', 'new_meta3_no_cover_pages.xml', ['cover.xhtml'], test_function)
+        self.do_bookdescr_test('meta3.xml', 'new_meta3_no_cover_pages.xml', ['cover.xhtml'], test_function)
 
-    def test_epub_003(self):
+    def test_bookdescr_remove_fonts(self):
         test_function = lambda descr, meta: descr.remove_fonts()
         expected_fonts = ['fonts/LiberationSerif-Regular.ttf', 'fonts/LiberationSerif-Italic.ttf', 'fonts/LiberationSerif-Bold.ttf', 'fonts/LiberationSerif-BoldItalic.ttf']
-        self.do_epub_test('meta3.xml', 'new_meta3_no_fonts.xml', expected_fonts, test_function)
+        self.do_bookdescr_test('meta3.xml', 'new_meta3_no_fonts.xml', expected_fonts, test_function)
 
-    def do_epub_test(self, xml_path_to_work_with, xml_path_to_expect_from, expected_filepaths, test_function):
+    def do_bookdescr_test(self, xml_path_to_work_with, xml_path_to_expect_from, expected_filepaths, test_function):
         descr = epub.BookDescr()
         descr.load(read_file(xml_path_to_work_with))
 
@@ -29,6 +29,35 @@ class TestEpub(TestCase):
 
         self.assertEqual(descr.save(), str_to_expect_from)
         self.assertEqual(produced_filepaths, expected_filepaths)
+
+    def test_book_load(self):
+        book = epub.Book()
+        book.load('../geroi_nashego_vremeni.epub')
+        produced = book.get_descr().save()
+        expected = read_file('meta4.xml')
+        self.assertEqual(produced, expected)
+        book.close()
+
+    def test_book_save(self):
+        book_001 = epub.Book()
+        book_001.load('../geroi_nashego_vremeni.epub')
+        book_001.save('book_save_test.epub')
+        book_001.close()
+        book_002 = epub.Book()
+        book_002.load('book_save_test.epub')
+        produced = book_002.get_descr().save()
+        expected = read_file('meta4.xml')
+        self.assertEqual(produced, expected)
+        book_002.close()
+
+    def test_book_clear(self):
+        book = epub.Book()
+        book.load('../geroi_nashego_vremeni.epub')
+        book.clear()
+        produced = book.get_descr().save()
+        expected = read_file('new_meta4.xml')
+        self.assertEqual(produced, expected)
+        book.close()
 
 
 def format_xml_str(expected_xml):

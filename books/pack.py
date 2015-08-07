@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 import uuid
 import sys
 import json
@@ -24,7 +23,7 @@ def main():
 
     try:
         work_directory = 'temp'
-        process(['unzip', filename, '-d' + work_directory])
+        epub.process(['unzip', filename, '-d' + work_directory])
         container_path = os.path.join(work_directory, 'META-INF', 'container.xml')
         metadata_path = os.path.join(work_directory, epub.find_content(container_path))
         files_directory = os.path.dirname(metadata_path)
@@ -41,7 +40,7 @@ def main():
         finally:
             out.close()
 
-        process(['zip', '-r', '../temp', 'mimetype', 'META-INF', 'OEBPS'], cwd='temp/')
+        epub.process(['zip', '-r', '../temp', 'mimetype', 'META-INF', 'OEBPS'], cwd='temp/')
 
         if len(sys.argv) > 3:
             os.rename('temp.zip', sys.argv[3] + '.epub')
@@ -181,14 +180,6 @@ def elem_constr(metajson):
         identifier = ET.SubElement(metadata, u'dc:identifier', {u'id': u'Zero'})
         identifier.text = unicode(uuid.uuid4())
     return metadata
-
-
-def process(arg, cwd=None):
-    proc = subprocess.Popen(arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
-    out, err = proc.communicate()
-    returncode = proc.returncode
-    if returncode != 0:
-        raise Exception(err)
 
 
 def output(metadata, add_content):
