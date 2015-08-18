@@ -1,5 +1,5 @@
-import shutil
 import uuid
+import zipfile
 import sys
 import os
 import json
@@ -307,17 +307,18 @@ class Metadata(object):
 
 class Book(object):
     def __init__(self):
-        self.path = str(uuid.uuid4()) + '/'
+        self.zip = None
+        self.content = None
         self._descr = BookDescr()
 
     def load(self, filename):
         """
         Load data from file to Book object including self.descr instance method
         """
-        os.mkdir(self.path)
-        process(['unzip', filename, '-d', self.path])
-        content_unicode = read_file(os.path.join(self.path, self.get_content_path()))
-        self._descr.load(str(content_unicode.encode('utf-8')))
+        self.zip = zipfile.ZipFile(filename)
+        content = find_content(self.zip.open('META-INF/container.xml'))
+        self.content = os.path.dirname(content)
+        self._descr.load(self.zip.read(content))
 
     def get_descr(self):
         return self._descr
@@ -326,38 +327,32 @@ class Book(object):
         """
         Creates new .epub file
         """
-        out = open(os.path.join(self.path, self.get_content_path()), 'w')
+        paths_to_delete = self.clear()
+        final_epub = zipfile.ZipFile(filename, mode='w')
+
         try:
-            out.write(self._descr.save())
+            for unit in self.zip.namelist():
+                if unit[-1] != '/':
+                    if unit not in paths_to_delete:
+                        transfer = self.zip.read(unit)
+                        if unit[-11:] == 'Content.opf':
+                            transfer = self._descr.save()
+                        final_epub.writestr(unit, transfer)
+
         finally:
-            out.close()
-        process(['zip', '-r', '../' + self.path[:-1], 'mimetype', 'META-INF', 'OEBPS'], cwd=self.path)
-        os.rename(self.path[:-1] + '.zip', filename)
+            final_epub.close()
+            self.zip.close()
 
     def clear(self):
-        """
-        Clear content and delete all unneccesary files inside Book folder
-        """
+        paths_to_delete = []
         images_path = self.get_descr().remove_cover_images()
         pages_path = self.get_descr().remove_cover_pages()
         fonts_path = self.get_descr().remove_fonts()
-        delete_paths = images_path + pages_path + fonts_path
-        files_directory = os.path.dirname(os.path.join(self.path, self.get_content_path()))
-
-        try:
-            delete_files(delete_paths, files_directory, self.path)
-        except Exception as e:
-            print >> sys.stderr, 'Error occured: ', e
-
-    def close(self):
-        if os.path.isdir(self.path):
-                shutil.rmtree(self.path)
-
-    def get_content_path(self):
-        """
-        :return: Content file path
-        """
-        return find_content(os.path.join(self.path, 'META-INF', 'container.xml'))
+        files_to_delete = images_path + pages_path + fonts_path
+        for path in list(files_to_delete):
+            fullpath = self.content + '/' + path
+            paths_to_delete.append(fullpath)
+        return paths_to_delete
 
 
 if __name__ == '__main__':

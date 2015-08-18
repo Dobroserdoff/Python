@@ -1,4 +1,3 @@
-import os
 import pack
 import unpack
 import epub
@@ -37,31 +36,16 @@ class TestEpub(TestCase):
         produced = book.get_descr().save()
         expected = read_file('meta4.xml')
         self.assertEqual(produced, expected)
-        book.close()
 
     def test_book_save(self):
         book_001 = epub.Book()
         book_001.load('../geroi_nashego_vremeni.epub')
         book_001.save('book_save_test.epub')
-        book_001.close()
         book_002 = epub.Book()
         book_002.load('book_save_test.epub')
         produced = book_002.get_descr().save()
-        expected = read_file('meta4.xml')
+        expected = read_file('new_meta4.xml')
         self.assertEqual(produced, expected)
-        book_002.close()
-
-    def test_book_clear(self):
-        book = epub.Book()
-        book.load('../geroi_nashego_vremeni.epub')
-        before_clearance = list(os.walk(book.path))
-        book.clear()
-        produced_xml= book.get_descr().save()
-        expected_xml = read_file('new_meta4.xml')
-        self.assertEqual(produced_xml, expected_xml)
-        after_clearance = list(os.walk(book.path))
-        self.assertNotEqual(before_clearance, after_clearance)
-        book.close()
 
 
 def format_xml_str(expected_xml):
