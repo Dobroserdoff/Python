@@ -1,9 +1,9 @@
 import os
-import shutil
 import uuid
 import sys
 import json
 import epub
+import zipfile
 import xml.etree.ElementTree as ET
 
 DEBUG = True
@@ -17,47 +17,34 @@ def main():
         filename = 'chelovek_v_futlyare_sbornik_.epub'
         patch = 'testbook.json'
 
-    if os.path.isdir('temp/'):
-        shutil.rmtree('temp/')
-        os.mkdir('temp/')
+    epub_zip = zipfile.ZipFile(filename)
 
     try:
-        work_directory = 'temp'
-        epub.process(['unzip', filename, '-d' + work_directory])
-        container_path = os.path.join(work_directory, 'META-INF', 'container.xml')
-        metadata_path = os.path.join(work_directory, epub.find_content(container_path))
-        files_directory = os.path.dirname(metadata_path)
-        new_xml_string, files_to_delete = make_book_xml(epub.read_file(metadata_path, encoding=None), epub.read_file(patch))
-
-        try:
-            delete_files(files_to_delete, files_directory, work_directory)
-        except Exception as e:
-            print >> sys.stderr, 'Error occured: ', e
-
-        out = open(metadata_path, 'w')
-        try:
-            out.write(new_xml_string)
-        finally:
-            out.close()
-
-        epub.process(['zip', '-r', '../temp', 'mimetype', 'META-INF', 'OEBPS'], cwd='temp/')
+        content = epub.find_content(epub_zip.open('META-INF/container.xml'))
+        content_dir = os.path.dirname(content)
+        new_xml_string, paths_to_delete = make_book_xml(epub_zip.read(content), epub.read_file(patch), content_dir)
 
         if len(sys.argv) > 3:
-            os.rename('temp.zip', sys.argv[3] + '.epub')
+            final_epub = zipfile.ZipFile(sys.argv[3], mode='w')
         else:
-            os.rename('temp.zip', 'new_' + filename)
+            final_epub = zipfile.ZipFile('new_' + filename, mode='w')
+
+        try:
+            for unit in epub_zip.namelist():
+                if unit[-1] != '/':
+                    if unit not in paths_to_delete:
+                        transfer = epub_zip.read(unit)
+                        if unit[-11:] == 'Content.opf':
+                            transfer = new_xml_string
+                        final_epub.writestr(unit, transfer)
+        finally:
+            final_epub.close()
 
     finally:
-        if not DEBUG:
-            if os.path.isdir('temp/'):
-                shutil.rmtree('temp/')
+        epub_zip.close()
 
 
 def safe_main():
-    if DEBUG:
-        main()
-        sys.exit(0)
-
     try:
         main()
     except Exception as e:
@@ -67,34 +54,45 @@ def safe_main():
     sys.exit(0)
 
 
-def make_book_xml(old_xml_str, json_str):
+def make_book_xml(old_xml_str, json_str, content_dir=None):
     root = ET.fromstring(old_xml_str)
     patch = json.loads(json_str)
     metadata = elem_constr(patch)
     add_content, cover_path = metadata_uncover(root)
     fix_add, xhtml_path, fonts_paths = fix_add_content(add_content)
+    new_xml_str = output(metadata, fix_add)
 
-    files_to_delete = [cover_path, xhtml_path]
+    files_to_delete = [cover_path]
+    if xhtml_path: files_to_delete.append(xhtml_path)
     for item in fonts_paths:
         files_to_delete.append(item)
 
-    new_xml_str = output(metadata, fix_add)
-    return new_xml_str, files_to_delete
+    if content_dir:
+        paths_to_delete = []
+        for unit in files_to_delete:
+            paths_to_delete.append(content_dir + '/' + unit)
+        return new_xml_str, paths_to_delete
+    else:
+        return new_xml_str, files_to_delete
 
 
 def metadata_uncover(root):
     add_content = []
+    metas = []
+    cover_path = 'images/cover.jpg'
 
     for child in root:
         if child.tag == '{http://www.idpf.org/2007/opf}metadata':
             for piece in child:
                 if 'meta' in piece.tag:
                     meta = piece
+                    metas.append(meta)
         elif 'manifest' in child.tag:
             for elem in list(child):
-                if elem.attrib['id'] == meta.attrib['content']:
-                    cover_path = elem.attrib['href']
-                    child.remove(elem)
+                for item in metas:
+                    if elem.attrib['id'] == item.attrib['content']:
+                        cover_path = elem.attrib['href']
+                        child.remove(elem)
             add_content.append(child)
         else:
             add_content.append(child)
@@ -122,6 +120,7 @@ def guide(content):
 
 def manifest(content, cover):
     fonts_paths = []
+    xhtml_path = None
     for piece in content:
         if 'manifest' in piece.tag:
             for elem in list(piece):
@@ -144,18 +143,6 @@ def spine(content, cover):
                 if elem.attrib['idref'] == cover['title']:
                     piece.remove(elem)
     return content
-
-
-def delete_files(files_to_delete, files_directory, work_directory):
-    for item in files_to_delete:
-        os.remove(os.path.join(files_directory, item))
-    list_of_files = list(os.walk(work_directory))
-    for dirpath, dirnames, filenames in list_of_files:
-        if len(filenames) == 0:
-            try:
-                os.rmdir(dirpath)
-            except Exception as e:
-                print >> sys.stderr, 'Error occured', e
 
 
 def elem_constr(metajson):

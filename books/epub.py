@@ -28,26 +28,24 @@ def safe_main():
 def main():
     if len(sys.argv) > 1:
         filename = sys.argv[1]
-        patch_out = sys.argv[2]
-        patch_in = sys.argv[3]
+        patch = sys.argv[2]
     else:
         filename = 'geroi_nashego_vremeni.epub'
-        patch_out = 'testbook_out.json'
-        patch_in = 'testbook_in.json'
+        patch = 'testbook.json'
 
+    book = Book()
     try:
-        book = Book()
         book.load('geroi_nashego_vremeni.epub')
         result_json = unpack.parse_book_xml(book.get_descr().save())
 
-        out = open(patch_out, 'w')
+        out = open(patch, 'w')
         try:
             out.write(result_json)
         finally:
             out.close()
 
         book.clear()
-        book.get_descr().get_metadata().load_json(patch_in)
+        book.get_descr().get_metadata().load_json(patch)
 
         if len(sys.argv) > 4:
             book.save(sys.argv[4])

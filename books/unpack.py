@@ -1,12 +1,10 @@
-import os
-import shutil
 import uuid
 import sys
 import json
+import epub
+import zipfile
 import xml.etree.ElementTree as ET
 # -*- coding: UTF-8 -*-
-
-DEBUG = False
 
 
 def main():
@@ -14,24 +12,19 @@ def main():
         filename = sys.argv[1]
     else:
         filename = 'chelovek_v_futlyare_sbornik_.epub'
-    if not os.path.isdir('temp/'):
-        os.mkdir('temp/')
+
+    epub_zip = zipfile.ZipFile(filename)
 
     try:
-        process(['unzip', filename, '-d', 'temp/'])
-        content = find_content('temp/META-INF/container.xml')
-        metadata_request = 'temp/' + content
-        book_xml_string = read_file(metadata_request)
-        result_json = parse_book_xml(book_xml_string)
+        content = epub.find_content(epub_zip.open('META-INF/container.xml'))
+        result_json = parse_book_xml(epub_zip.read(content))
         out = open('testbook.json', 'w')
         try:
             out.write(result_json)
         finally:
             out.close()
     finally:
-        if not DEBUG:
-            if os.path.isdir('temp/'):
-                shutil.rmtree('temp/')
+        epub_zip.close()
 
 
 def parse_book_xml(book_xml_string):
@@ -127,43 +120,6 @@ def output(elements):
         if len(main_dir[key]) == 1:
             main_dir[key] = main_dir[key][0]
     return main_dir
-
-
-def find_content(container):
-    """
-    Looking through container file to find content file
-    :return: Content file path
-    """
-    tree = ElementTree.parse(container)
-    root = tree.getroot()
-    for child in root.iter():
-        if 'full-path' in child.attrib:
-            content = child.attrib['full-path']
-            return content
-
-
-def read_file(filepath, encoding='utf-8'):
-    """
-    Read data from xml file
-    :return: Unicode
-    """
-    f = open(filepath)
-    try:
-        filedata = f.read()
-        if encoding:
-            return filedata.decode(encoding)
-        else:
-            return filedata
-    finally:
-        f.close()
-
-
-def process(arg, cwd=None):
-    proc = subprocess.Popen(arg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
-    out, err = proc.communicate()
-    returncode = proc.returncode
-    if returncode != 0:
-        raise Exception(err)
 
 
 if __name__ == '__main__':

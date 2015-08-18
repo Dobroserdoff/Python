@@ -1,3 +1,4 @@
+import os
 import pack
 import unpack
 import epub
@@ -53,10 +54,13 @@ class TestEpub(TestCase):
     def test_book_clear(self):
         book = epub.Book()
         book.load('../geroi_nashego_vremeni.epub')
+        before_clearance = list(os.walk(book.path))
         book.clear()
-        produced = book.get_descr().save()
-        expected = read_file('new_meta4.xml')
-        self.assertEqual(produced, expected)
+        produced_xml= book.get_descr().save()
+        expected_xml = read_file('new_meta4.xml')
+        self.assertEqual(produced_xml, expected_xml)
+        after_clearance = list(os.walk(book.path))
+        self.assertNotEqual(before_clearance, after_clearance)
         book.close()
 
 
