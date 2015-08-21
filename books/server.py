@@ -1,5 +1,7 @@
 import socket
 import urlparse
+import zipfile
+import os
 import epub
 
 
@@ -30,7 +32,13 @@ def reciver_connection(sock):
                 connection.close()
                 continue
             result = urlparse.parse_qs(urlparse_result.query)
-            process_connection(result, connection)
+            if not result:
+                create_index(connection)
+            elif result['submit'][0] == 'index_ok':
+                book, epub_zip = get_book(result)
+                process_connection(result, connection, book, epub_zip)
+            else:
+                process_connection(result, connection, book, epub_zip)
 
 
 def process_favicon(connection):
@@ -39,14 +47,18 @@ def process_favicon(connection):
         connection.sendall('HTTP/1.1 200 OK\r\n\r\n' + icon)
 
 
-def process_connection(query, connection):
-    print query
-    if not query:
-        html_str = create_index()
-    elif query['submit'][0] == ['ok']:
+def get_book(query):
         book = epub.Book()
         book.load(query['epub_file'][0])
+        epub_zip = zipfile.ZipFile(query['epub_file'][0])
+        return book, epub_zip
 
+
+def process_connection(query, connection, book, epub_zip):
+    print query
+    if query['submit'] == ['index_ok']:
+        html_str = create_title(book, epub_zip)
+    print html_str
     reply(connection, html_str)
 
 
@@ -63,7 +75,7 @@ def header(title, style=None):
     :return: html string
     """
     title = Element('<title>', title)
-    meta = Element('<meta >').set_attribute('cahrset', 'UTF-8')
+    meta = Element('<meta >').set_attribute('charset', 'UTF-8')
     if style:
         head = Element('<head>', meta + style + title)
     else:
@@ -72,18 +84,35 @@ def header(title, style=None):
     return result
 
 
-def create_index():
+def create_index(connection):
     doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
     head = header('.epub reader')
 
     title = Element('<h1>', 'Choose .epub file').set_attribute('align', 'center')
     epub_file = Element('<input >').set_attribute('type', 'file').set_attribute('name', 'epub_file')
-    ok_button = Element('<button>', 'Ok').set_attribute('name', 'submit').set_attribute('value', 'ok')
+    ok_button = Element('<button>', 'Ok').set_attribute('name', 'submit').set_attribute('value', 'index_ok')
     br = Element('<br />')
     form = Element('<form>', epub_file + br + ok_button).set_attribute('align', 'center')
     body = Element('<body>', title + form)
 
-    return doctype + str(head) + str(body)
+    html_str = doctype + str(head) + str(body)
+
+    reply(connection, html_str)
+
+
+def create_title(book, epub_zip):
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    content = epub.find_content(epub_zip.open('META-INF/container.xml'))
+    content_dir = os.path.dirname(content)
+
+    guide = book.get_descr().get_guide_element()
+    title = content_dir + '/' + guide[0].attrib['href']
+
+    xhtml_str = epub_zip.read(title)
+    html_tag = '<html lang="en">\n  <meta  charset="UTF-8">\n  '
+    head_start = xhtml_str.find('<head>')
+    xhtml_str = doctype + html_tag + xhtml_str[head_start:]
+    return xhtml_str
 
 
 class Element(object):
