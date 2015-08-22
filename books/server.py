@@ -25,16 +25,21 @@ def reciver_connection(sock):
         request = connection.recv(1024)
         print request
         if request[:3] == 'GET':
+            result = {'submit': []}
             link = request.split()[1]
             urlparse_result = urlparse.urlparse(link)
             if urlparse_result.path == '/favicon.ico':
                 process_favicon(connection)
                 connection.close()
                 continue
-            result = urlparse.parse_qs(urlparse_result.query)
+            elif urlparse_result.path == '/':
+                result = urlparse.parse_qs(urlparse_result.query)
+            elif len(urlparse_result.path) > 1:
+                result['link'] = urlparse_result.path
             if not result:
-                create_index(connection)
-            elif result['submit'][0] == 'index_ok':
+                content = create_index()
+                reply(connection, content)
+            elif result['submit'] == ['index_ok']:
                 book, epub_zip = get_book(result)
                 process_connection(result, connection, book, epub_zip)
             else:
@@ -57,9 +62,17 @@ def get_book(query):
 def process_connection(query, connection, book, epub_zip):
     print query
     if query['submit'] == ['index_ok']:
-        html_str = create_title(book, epub_zip)
-    print html_str
-    reply(connection, html_str)
+        content = create_title(book, epub_zip)
+    elif query['submit'] == ['index']:
+        content = create_index()
+    elif query['submit'] == ['contents']:
+        content = create_title(book, epub_zip)
+    elif query['submit'] == ['annotation']:
+        content = create_title(book, epub_zip)
+    elif query['link'][-4:] == '.css':
+        content = epub_zip.read(book.content + query['link'])
+
+    reply(connection, content)
 
 
 def reply(connection, content):
@@ -84,20 +97,19 @@ def header(title, style=None):
     return result
 
 
-def create_index(connection):
+def create_index():
     doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
     head = header('.epub reader')
 
     title = Element('<h1>', 'Choose .epub file').set_attribute('align', 'center')
     epub_file = Element('<input >').set_attribute('type', 'file').set_attribute('name', 'epub_file')
+    epub_file.set_attribute('width', '50px')
     ok_button = Element('<button>', 'Ok').set_attribute('name', 'submit').set_attribute('value', 'index_ok')
     br = Element('<br />')
     form = Element('<form>', epub_file + br + ok_button).set_attribute('align', 'center')
     body = Element('<body>', title + form)
 
-    html_str = doctype + str(head) + str(body)
-
-    reply(connection, html_str)
+    return doctype + str(head) + str(body)
 
 
 def create_title(book, epub_zip):
@@ -106,13 +118,27 @@ def create_title(book, epub_zip):
     content_dir = os.path.dirname(content)
 
     guide = book.get_descr().get_guide_element()
-    title = content_dir + '/' + guide[0].attrib['href']
+    for item in guide:
+        if item.attrib['title'] == 'title':
+            title = content_dir + '/' + item.attrib['href']
 
     xhtml_str = epub_zip.read(title)
     html_tag = '<html lang="en">\n  <meta  charset="UTF-8">\n  '
     head_start = xhtml_str.find('<head>')
-    xhtml_str = doctype + html_tag + xhtml_str[head_start:]
+    body_close = xhtml_str.find('  </body>')
+    xhtml_str = doctype + html_tag + xhtml_str[head_start:body_close] + title_buttons() + xhtml_str[body_close:]
     return xhtml_str
+
+
+def title_buttons():
+    index = Element('<button>', 'Index').set_attribute('name', 'submit').set_attribute('value', 'index')
+    contents = Element('<button>', 'Contents').set_attribute('name', 'submit').set_attribute('value', 'contents')
+    annotation = Element('<button>', 'Annotation').set_attribute('name', 'submit').set_attribute('value', 'annotation')
+
+    form = Element('<form>', index + contents + annotation)
+    center = Element('<center>', form, 2)
+
+    return str(center)
 
 
 class Element(object):
@@ -127,19 +153,19 @@ class Element(object):
 
     def __str__(self):
         if self.content:
-            result = self.tab * '\t' + self.tag + '\n'
+            result = self.tab * '  ' + self.tag + '\n'
             str_content = str(self.content)
             lines = str_content.split('\n')
             if '' in lines:
                 lines.remove('')
             for line in lines:
-                result += (self.tab + 1) * '\t' + line + '\n'
+                result += (self.tab + 1) * '  ' + line + '\n'
             if self.closingtag:
-                result += self.tab * '\t' + self.closingtag + '\n'
+                result += self.tab * '  ' + self.closingtag + '\n'
         else:
-            result = self.tab * '\t' + self.tag + '\n'
+            result = self.tab * '  ' + self.tag + '\n'
             if self.closingtag:
-                result += self.tab * '\t' + self.closingtag + '\n'
+                result += self.tab * '  ' + self.closingtag + '\n'
         return result
 
     def __add__(self, other):

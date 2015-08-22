@@ -8,7 +8,7 @@ import subprocess
 import unpack
 from xml.etree import ElementTree
 
-DEBUG = False
+DEBUG = True
 
 
 def safe_main():
@@ -44,17 +44,17 @@ def main():
         finally:
             out.close()
 
-        book.clear()
+        paths_to_delete = book.clear()
         book.get_descr().get_metadata().load_json(patch)
 
         if len(sys.argv) > 4:
-            book.save(sys.argv[4])
+            book.save(sys.argv[4], paths_to_delete)
         else:
-            book.save('new_' + filename)
+            book.save('new_' + filename, paths_to_delete)
 
     finally:
         if not DEBUG:
-            book.close()
+            book.zip.close()
 
 
 def find_content(container):
@@ -305,10 +305,42 @@ class Metadata(object):
         self.descr.set_metadata_element(new_metadata)
 
 
+class CSS(object):
+    def __init__(self):
+        self.text = None
+
+    def load(self, css_str):
+        self.text = css_str
+
+    def save(self):
+        return self.text
+
+    def remove_font_face(self):
+        """
+        Removes @font-face elements from css file
+        """
+        while '@font-face' in self.text:
+            fontface = self.text.find('@font-face')
+            facecut = self.text[fontface:].find('}')
+            self.text = self.text[facecut+3:]
+
+    def remove_font_family(self):
+        """
+        Removes font-family strings from css file
+        """
+        while 'font-family' in self.text:
+            fontfamily = self.text.find('font-family')
+            familycut = self.text[fontfamily:].find(';\n') + fontfamily
+            first_part = self.text[:fontfamily]
+            second_part = self.text[familycut+2:]
+            self.text = first_part + second_part
+
+
 class Book(object):
     def __init__(self):
         self.zip = None
         self.content = None
+        self.css = CSS()
         self._descr = BookDescr()
 
     def load(self, filename):
@@ -319,15 +351,16 @@ class Book(object):
         content = find_content(self.zip.open('META-INF/container.xml'))
         self.content = os.path.dirname(content)
         self._descr.load(self.zip.read(content))
+        css_path = self._descr.find_manifest_items_by_media('text/css')[0].attrib['href']
+        self.css.load(self.zip.read(self.content + '/' + css_path))
 
     def get_descr(self):
         return self._descr
 
-    def save(self, filename):
+    def save(self, filename, paths_to_delete):
         """
         Creates new .epub file
         """
-        paths_to_delete = self.clear()
         final_epub = zipfile.ZipFile(filename, mode='w')
 
         try:
@@ -337,6 +370,8 @@ class Book(object):
                         transfer = self.zip.read(unit)
                         if unit[-11:] == 'Content.opf':
                             transfer = self._descr.save()
+                        elif unit[-8:] == 'main.css':
+                            transfer = self.css.save()
                         final_epub.writestr(unit, transfer)
 
         finally:
@@ -344,14 +379,23 @@ class Book(object):
             self.zip.close()
 
     def clear(self):
+        """
+        Clean Content.opf and main.css
+        Return list of paths files to delete
+        """
         paths_to_delete = []
         images_path = self.get_descr().remove_cover_images()
         pages_path = self.get_descr().remove_cover_pages()
         fonts_path = self.get_descr().remove_fonts()
         files_to_delete = images_path + pages_path + fonts_path
+
         for path in list(files_to_delete):
             fullpath = self.content + '/' + path
             paths_to_delete.append(fullpath)
+
+        self.css.remove_font_face()
+        self.css.remove_font_family()
+
         return paths_to_delete
 
 
