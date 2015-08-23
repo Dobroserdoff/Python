@@ -1,8 +1,8 @@
 import socket
 import urlparse
 import zipfile
-import os
 import epub
+import xml.etree.ElementTree as ET
 
 
 def main():
@@ -62,14 +62,18 @@ def get_book(query):
 def process_connection(query, connection, book, epub_zip):
     print query
     if query['submit'] == ['index_ok']:
-        content = create_title(book, epub_zip)
+        content = create_title_or_annotation(book, epub_zip, ['title', 'annotation'])
     elif query['submit'] == ['index']:
         content = create_index()
+    elif query['submit'] == ['title']:
+        content = create_title_or_annotation(book, epub_zip, ['title', 'annotation'])
     elif query['submit'] == ['contents']:
-        content = create_title(book, epub_zip)
+        content = create_contents(book, epub_zip)
     elif query['submit'] == ['annotation']:
-        content = create_title(book, epub_zip)
+        content = create_title_or_annotation(book, epub_zip, ['annotation', 'title'])
     elif query['link'][-4:] == '.css':
+        content = epub_zip.read(book.content + query['link'])
+    elif query['link'][-6:] == '.xhtml':
         content = epub_zip.read(book.content + query['link'])
 
     reply(connection, content)
@@ -98,6 +102,10 @@ def header(title, style=None):
 
 
 def create_index():
+    """
+    Creates index page html string on demand
+    :return: html string
+    """
     doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
     head = header('.epub reader')
 
@@ -109,36 +117,124 @@ def create_index():
     form = Element('<form>', epub_file + br + ok_button).set_attribute('align', 'center')
     body = Element('<body>', title + form)
 
-    return doctype + str(head) + str(body)
+    html = Element('<html>', head + body)
+    return doctype + str(html)
 
 
-def create_title(book, epub_zip):
+def create_title_or_annotation(book, epub_zip, value):
+    """
+    Creates title page html string
+    :param book: epub.Book()
+    :param epub_zip: ZipFile
+    :return: html string
+    """
     doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
-    content = epub.find_content(epub_zip.open('META-INF/container.xml'))
-    content_dir = os.path.dirname(content)
 
     guide = book.get_descr().get_guide_element()
     for item in guide:
-        if item.attrib['title'] == 'title':
-            title = content_dir + '/' + item.attrib['href']
+        if item.attrib['title'] == value[0]:
+            title = book.content + '/' + item.attrib['href']
 
     xhtml_str = epub_zip.read(title)
     html_tag = '<html lang="en">\n  <meta  charset="UTF-8">\n  '
     head_start = xhtml_str.find('<head>')
     body_close = xhtml_str.find('  </body>')
-    xhtml_str = doctype + html_tag + xhtml_str[head_start:body_close] + title_buttons() + xhtml_str[body_close:]
-    return xhtml_str
+    html_str = doctype + html_tag + xhtml_str[head_start:body_close]
+    html_str += str(create_buttons('index', 'contents', value[1])) + xhtml_str[body_close:]
+
+    return html_str
 
 
-def title_buttons():
-    index = Element('<button>', 'Index').set_attribute('name', 'submit').set_attribute('value', 'index')
-    contents = Element('<button>', 'Contents').set_attribute('name', 'submit').set_attribute('value', 'contents')
-    annotation = Element('<button>', 'Annotation').set_attribute('name', 'submit').set_attribute('value', 'annotation')
+def create_contents(book, epub_zip):
+    """
+    Creates table of contetnts page html string
+    :param book: epub.Book()
+    :param epub_zip: ZipFile
+    :return: html string
+    """
+    doctype = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    head = header('Table of contens')
+    br = Element('<br />')
 
-    form = Element('<form>', index + contents + annotation)
-    center = Element('<center>', form, 2)
+    ncx_element = book.get_descr().find_manifest_items_by_media('application/x-dtbncx+xml')[0]
+    file_path = book.content + '/' + ncx_element.attrib['href']
+    xml_str = epub_zip.read(file_path)
+    root = ET.fromstring(xml_str)
 
-    return str(center)
+    pairs = []
+    get_name_link_pairs(root, pairs)
+    elements = get_name_link_elements(pairs)
+    result = elements[0] + br
+    for i in range(len(elements)):
+        if i+1 != len(elements):
+            result += elements[i+1] + br
+    buttons = create_buttons('index', 'title', 'annotation')
+    body = Element('<body>', result + buttons).set_attribute('align', 'center')
+
+    html = Element('<html>', head + body)
+    return doctype + str(html)
+
+
+def get_name_link_pairs(root, pairs):
+    """
+    Creates list of chapter/link pairs
+    :param root: xml element
+    :param pairs: list of pairs
+    """
+    for item in root:
+        if item._children:
+            get_name_link_pairs(item, pairs)
+        else:
+            if item.tag[-4:] == 'text':
+                pairs.append(item.text.encode('utf-8'))
+            elif item.tag[-7:] == 'content':
+                pairs.append('$' + item.attrib['src'].encode('utf-8'))
+
+
+def get_name_link_elements(pairs):
+    """
+    Creates html elements out of list of pairs
+    :param pairs: list of pairs
+    :return: list of elements
+    """
+    elements = []
+    for i in range(len(pairs)):
+        if i+1 == len(pairs):
+            if pairs[i][0] != '$':
+                element = Element('<h1>', pairs[i])
+            else:
+                continue
+        else:
+            if pairs[i+1][0] == '$':
+                element = Element('<a>', pairs[i]).set_attribute('href', pairs[i+1][1:])
+            elif pairs[i][0] != '$':
+                element = Element('<h1>', pairs[i])
+            else:
+                continue
+        elements.append(element)
+    return elements
+
+
+def create_buttons(first, second, third=None):
+    """
+    Creates footer navigation buttons
+    :param first: name of the first button
+    :param second: name of the second button
+    :param third: name of the third button (if needed)
+    :return: html string
+    """
+    br = Element('<br />')
+    first_element = Element('<button>', first.capitalize()).set_attribute('name', 'submit').set_attribute('value', first)
+    second_element = Element('<button>', second.capitalize()).set_attribute('name', 'submit').set_attribute('value', second)
+
+    if third:
+        third_element = Element('<button>', third.capitalize()).set_attribute('name', 'submit').set_attribute('value', third)
+        form = Element('<form>', first_element + second_element + third_element)
+    else:
+        form = Element('<form>', first_element + second_element)
+
+    center = Element('<center>', br + br + form)
+    return center
 
 
 class Element(object):
