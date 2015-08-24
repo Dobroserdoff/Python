@@ -221,6 +221,9 @@ class BookDescr(object):
     def find_guide_items_by_type(self, type_):
         return find_elements.some_by_attr(self.get_guide_element(), u'{http://www.idpf.org/2007/opf}reference', u'type', type_)
 
+    def find_guide_items_by_title(self, title_):
+        return find_elements.some_by_attr(self.get_guide_element(), u'{http://www.idpf.org/2007/opf}reference', u'title', title_)
+
     def remove_items_by_guide_type(self, type_):
         """
         Removes items from everywhere finding them in guide by type.
@@ -237,6 +240,14 @@ class BookDescr(object):
 
         self.remove_spine_items(ids)
         return self.remove_manifest_items(ids)
+
+    def get_previous_item_by_href(self, href_):
+        item = find_elements.one_by_attr(self.get_guide_element(), u'{http://www.idpf.org/2007/opf}reference', u'href', href_)
+        return find_elements.get_previous_element(self.get_guide_element(), item)
+
+    def get_next_item_by_href(self, href_):
+        item = find_elements.one_by_attr(self.get_guide_element(), u'{http://www.idpf.org/2007/opf}reference', u'href', href_)
+        return find_elements.get_next_element(self.get_guide_element(), item)
 
 
 class Metadata(object):

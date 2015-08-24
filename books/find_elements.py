@@ -26,3 +26,27 @@ def one_by_attr(parent, tag_name, attr_name, attr_value):
     if len(result) > 1:
         raise Exception(u'Found multiple %s tags' % tag_name)
     return result[0]
+
+
+def get_previous_element(parent, element):
+    for i in range(len(parent)):
+        if element == parent[i]:
+            number = i
+    if number == 0:
+        raise Exception (u'No previous elements')
+    if number:
+        return parent[number-1]
+    else:
+        raise Exception (u'No matching elements')
+
+
+def get_next_element(parent, element):
+    for i in range(len(parent)):
+        if element == parent[i]:
+            number = i
+    if number+1 == len(parent):
+        raise Exception (u'No next elements')
+    if number:
+        return parent[number+1]
+    else:
+        raise Exception (u'No matching elements')
