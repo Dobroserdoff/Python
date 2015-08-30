@@ -28,14 +28,14 @@ def reciver_connection(sock):
             result = {}
             link = request.split()[1]
             urlparse_result = urlparse.urlparse(link)
-            print urlparse_result
             if urlparse_result.path == '/favicon.ico':
                 process_favicon(connection)
                 connection.close()
                 continue
             elif (urlparse_result.path[:1] == '/') and (urlparse_result.query != ''):
                 result = urlparse.parse_qs(urlparse_result.query)
-                if 'link' in result: del result['link']
+                if 'link' in result:
+                    del result['link']
             elif len(urlparse_result.path) > 1:
                 result['link'] = urlparse_result.path
 
@@ -87,11 +87,10 @@ def process_connection(query, connection, book, epub_zip):
     elif 'page' in query:
         content = create_html_from_xhtml(book, epub_zip, query['page'][0])
     elif 'link' in query:
-        if query['link'][-4:] == '.css':
-            content = epub_zip.read(book.content + query['link'])
-        elif query['link'][-6:] == '.xhtml':
+        if query['link'][-6:] == '.xhtml':
             content = create_html_from_xhtml(book, epub_zip, query['link'][1:])
-
+        else:
+            content = epub_zip.read(book.content + query['link'])
 
     reply(connection, content)
 
@@ -156,7 +155,10 @@ def create_html_from_xhtml(book, epub_zip, filename):
     html_str = doctype + html_tag + xhtml_str[head_start:body_close]
 
     if 'title' in filename:
-        buttons = create_buttons('index', 'contents', 'annotation')
+        if book.get_descr().find_guide_items_by_title('annotation'):
+            buttons = create_buttons('index', 'contents', 'annotation')
+        else:
+            buttons = create_buttons('index', 'contents', 'forward', book=book, filename=filename)
     elif 'annotation' in filename:
         buttons = create_buttons('title', 'contents', 'forward', book, filename)
     elif 'annotation' in book.get_descr().get_previous_item_by_href(filename).attrib['href']:
@@ -193,7 +195,10 @@ def create_contents(book, epub_zip):
     for i in range(len(elements)):
         if i+1 != len(elements):
             result += elements[i+1] + br
-    buttons = create_buttons('index', 'title', 'annotation')
+    if book.get_descr().find_guide_items_by_title('annotation'):
+        buttons = create_buttons('index', 'title', 'annotation')
+    else:
+        buttons = create_buttons('index', 'title')
     body = Element('<body>', result + buttons).set_attribute('align', 'center')
 
     html = Element('<html>', head + body)
@@ -278,11 +283,13 @@ def create_back_button(book, filename):
     button = Element('<button>', 'Back').set_attribute('name', 'page').set_attribute('value', value)
     return button
 
+
 def create_forward_button(book, filename):
     try:
         value = book.get_descr().get_next_item_by_href(filename).attrib['href']
         button = Element('<button>', 'Forward').set_attribute('name', 'page').set_attribute('value', value)
-    except Exception:
+    except Exception as e:
+        print e
         button = Element('<button>', 'Title').set_attribute('name', 'submit').set_attribute('value', 'title')
     return button
 

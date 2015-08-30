@@ -40,7 +40,8 @@ class TestEpub(TestCase):
     def test_book_save(self):
         book_001 = epub.Book()
         book_001.load('../geroi_nashego_vremeni.epub')
-        book_001.save('book_save_test.epub')
+        paths_to_delete_001 = book_001.clear()
+        book_001.save('book_save_test.epub', paths_to_delete_001)
         book_002 = epub.Book()
         book_002.load('book_save_test.epub')
         produced = book_002.get_descr().save()
@@ -90,6 +91,9 @@ class TestPack(TestCase):
                                 'fonts/LiberationSerif-BoldItalic.ttf']
         self.remove_lists_comparison('meta2.xml', 'meta2.json', expected_remove_list)
 
+    def test_pack_003(self):
+        self.clean_css_comparison('old.css', 'new.css')
+
     def final_files_comparison(self, old_path, json_path, new_path):
         tree = ElementTree.ElementTree(file=old_path)
         root = tree.getroot()
@@ -105,7 +109,7 @@ class TestPack(TestCase):
             json_str = json_file.read()
         finally:
             json_file.close()
-        result_produced, remove_list = pack.make_book_xml(ElementTree.tostring(root), json_str)
+        result_produced, remove_list, css_path = pack.make_book_xml(ElementTree.tostring(root), json_str)
 
         new_file = open(new_path)
         try:
@@ -129,5 +133,21 @@ class TestPack(TestCase):
             json_str = json_file.read()
         finally:
             json_file.close()
-        result_produced, produced_remove_list = pack.make_book_xml(ElementTree.tostring(root), json_str)
+        result_produced, produced_remove_list, css_path = pack.make_book_xml(ElementTree.tostring(root), json_str)
         self.assertEqual(produced_remove_list, expected_remove_list)
+
+    def clean_css_comparison(self, old_path, new_path):
+        old_css_file = open(old_path)
+        try:
+            old_css_str = old_css_file.read()
+        finally:
+            old_css_file.close()
+        produced_css_str = pack.clean_css(old_css_str)
+
+        new_css_file = open(new_path)
+        try:
+            expected_css_str = new_css_file.read()
+        finally:
+            old_css_file.close()
+        self.assertEqual(produced_css_str, expected_css_str)
+

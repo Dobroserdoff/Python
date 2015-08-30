@@ -42,11 +42,11 @@ def get_previous_element(parent, element):
 
 def get_next_element(parent, element):
     for i in range(len(parent)):
-        if element == parent[i]:
+        if parent[i].attrib == element.attrib:
             number = i
     if number+1 == len(parent):
         raise Exception (u'No next elements')
-    if number:
+    if number != None:
         return parent[number+1]
     else:
         raise Exception (u'No matching elements')

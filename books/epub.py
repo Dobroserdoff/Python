@@ -410,5 +410,6 @@ class Book(object):
         return paths_to_delete
 
 
+
 if __name__ == '__main__':
     safe_main()
