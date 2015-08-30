@@ -15,10 +15,15 @@ def main():
 
     epub_zip = zipfile.ZipFile(filename)
 
+    if len(sys.argv) > 2:
+        patch = sys.argv[2]
+    else:
+        patch = 'testbook.json'
+
     try:
         content = epub.find_content(epub_zip.open('META-INF/container.xml'))
         result_json = parse_book_xml(epub_zip.read(content))
-        out = open('testbook.json', 'w')
+        out = open(patch, 'w')
         try:
             out.write(result_json)
         finally:
